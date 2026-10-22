@@ -1,53 +1,12 @@
 {
-  "timestamp_utc": "2026-10-22T17:55:39.524460+00:00",
+  "timestamp_utc": "2026-10-22T18:46:54.391741+00:00",
+  "partial_run": true,
   "gates": [
-    {
-      "id": "GATE_01",
-      "name": "BUILD",
-      "status": "PASS",
-      "evidence": "12 python files compiled; missing deps: none; errors: none"
-    },
-    {
-      "id": "GATE_02",
-      "name": "UNIT_TESTS",
-      "status": "PASS",
-      "evidence": "pytest exit 0: 111 passed in 5.88s"
-    },
-    {
-      "id": "GATE_03",
-      "name": "INTEGRATION_TESTS",
-      "status": "PASS",
-      "evidence": "pytest exit 0: 2 passed in 2.49s"
-    },
-    {
-      "id": "GATE_04",
-      "name": "DATA_INTEGRITY",
-      "status": "PASS",
-      "evidence": "80 records in 2 experiment(s) re-checked; problems: none"
-    },
     {
       "id": "GATE_05",
       "name": "SECURITY",
       "status": "PARTIAL",
-      "evidence": "secret scan clean (regex-based, limited); independent security review: not recorded"
-    },
-    {
-      "id": "GATE_06",
-      "name": "SCIENTIFIC_VALIDITY",
-      "status": "PENDING",
-      "evidence": "scientific audit verdict: not recorded"
-    },
-    {
-      "id": "GATE_07",
-      "name": "INDEPENDENT_AUDIT",
-      "status": "PENDING",
-      "evidence": "independent audit verdict: not recorded"
-    },
-    {
-      "id": "GATE_08",
-      "name": "STRATEGIC_APPROVAL",
-      "status": "APPROVAL_REQUIRED",
-      "evidence": "no owner approval recorded"
+      "evidence": "secret scan clean (regex-based, limited); security_review: no verdict recorded"
     }
   ],
   "release_ready": false

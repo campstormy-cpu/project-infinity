@@ -9,8 +9,17 @@ Layout (big endian), 45 bytes of header then the codec payload:
     payload      N  bytes
 
 The header is part of `complete_storage_bytes`. Decoding verifies length and
-SHA-256 and raises IntegrityError on any mismatch, so a corrupted or tampered
-container can never be returned as if it were the original.
+SHA-256 and raises IntegrityError on any mismatch. This detects corruption and
+accidental damage. It is NOT authentication: someone who rewrites both the
+payload and the stored hash produces a container that decodes without error.
+Authentication needs a keyed MAC or signature, which belongs to the encryption
+layer (Phase 0, not built).
+
+Memory bound: decoding refuses any container declaring more than `max_output`
+bytes (default 256 MiB). A hostile container that declares exactly that much can
+still force a peak of roughly twice `max_output` (measured 250-534 MB RSS across
+the five codecs on this VM, 2026-10-22: output buffer plus its returned copy). Callers
+with a smaller memory budget must pass a smaller `max_output`.
 """
 from __future__ import annotations
 
@@ -35,7 +44,7 @@ def compress_bytes(codec_name: str, data: bytes) -> bytes:
     return header + payload
 
 
-DEFAULT_MAX_OUTPUT = 1 << 30  # 1 GiB; callers may raise or lower it
+DEFAULT_MAX_OUTPUT = 256 * 1024 * 1024  # 256 MiB; callers handling larger files must raise it explicitly
 
 
 def decompress_bytes(blob: bytes, max_output: int = DEFAULT_MAX_OUTPUT) -> bytes:

@@ -92,6 +92,7 @@ def main() -> None:
             r["space_savings"] = (1 - stor / n) if n else None
             r["gpu_usage"] = None  # no GPU in this environment
             r["external_dependency"] = CODECS[codec].external_dependency
+            r["external_dependency_bytes"] = CODECS[codec].external_dependency_bytes
             records.append(r)
 
     # Verify every record against the manifest again (immutability) before writing.
@@ -112,7 +113,8 @@ def main() -> None:
         "metric_notes": {
             "complete_storage_bytes": "container header (45 B) + codec payload + model overhead (0 for baselines)",
             "peak_rss_kb": "peak resident memory of a fresh worker process; includes interpreter baseline (see baseline_rss_kb)",
-            "timing": "median of N repeats on a shared 2-core VM; indicative only, not a rigorous timing study",
+            "timing": "median of N repeats on a shared 2-core VM; run-to-run variation can exceed 30%; order of magnitude only",
+            "external_dependency_bytes": "size of data embedded in the decoder library, NOT included in complete_storage_bytes and not amortised",
             "gpu_usage": "null: no GPU available",
         },
     }
@@ -120,7 +122,7 @@ def main() -> None:
 
     flat_cols = ["file", "codec", "original_bytes", "compressed_bytes", "complete_storage_bytes",
                  "compression_ratio", "space_savings", "compress_seconds_median", "decompress_seconds_median",
-                 "compress_cpu_seconds_median", "decompress_cpu_seconds_median", "peak_rss_kb", "baseline_rss_kb", "external_dependency",
+                 "compress_cpu_seconds_median", "decompress_cpu_seconds_median", "peak_rss_kb", "baseline_rss_kb", "external_dependency", "external_dependency_bytes",
                  "model_overhead_bytes", "gpu_usage", "reconstruction_success", "original_unmodified",
                  "deterministic_across_repeats", "container_sha256"]
     with open(out_dir / "results.csv", "w", newline="") as fh:
@@ -167,7 +169,8 @@ def main() -> None:
     det = all(r["deterministic_across_repeats"] for r in records)
     lines += ["", f"- Measurements: {len(records)}. All reconstructions byte-exact (hash + byte compare) and originals unmodified: **{ok}**.",
               f"- Container output identical across repeats for every measurement: **{det}**.",
-              f"- Brotli (external static dictionary) is smaller than every dictionary-free codec on {brotli_wins} of {len(manifest['files'])} files.",
+              f"- Brotli (external static dictionary, {CODECS['brotli-11'].external_dependency_bytes} bytes, shared by all files and not counted above) "
+              f"is smaller than every dictionary-free codec on {brotli_wins} of {len(manifest['files'])} files.",
               f"- Not implemented, no results recorded: {', '.join(NOT_IMPLEMENTED)}.",
               "- Not applicable to this dataset: " + "; ".join(f"{k} ({v})" for k, v in NOT_APPLICABLE.items()) + ".",
               "",
@@ -177,7 +180,8 @@ def main() -> None:
               "degenerate or artificial. Only the Python source corpus is real text, and `already_compressed.xz` is the same content re-encoded.",
               "- Ratios on degenerate files (zeros, repetitive text) are dominated by the 45-byte header and say nothing about real data.",
               "- Results depend on library versions (see results.json meta.environment); other builds may give different bytes.",
-              "- Timings are medians of a few repeats on a shared 2-core VM; differences under about 30% are noise. "
+              "- Timings are medians of a few repeats on a shared 2-core VM. Comparing two identical runs of this suite, "
+              "individual timings differed by more than 30% in a large share of cases, so use timings only for order of magnitude. "
               "Peak RSS covers compress and decompress together and includes the interpreter baseline.",
               "- Reproducibility was shown on this machine only; the evidence manifest is self-attested, not independently signed."]
     (out_dir / "report.md").write_text("\n".join(lines) + "\n")

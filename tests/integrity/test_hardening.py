@@ -1,4 +1,4 @@
-"""Hardening tests added after AUDIT_REPORT.md findings F-02, F-04, F-07.
+"""Hardening tests added after audits/AUDIT_001_EXP-0001.md findings F-02, F-04, F-07 (superseded in strength by test_hardening_v2.py).
 They were written to FAIL against the pre-fix code where applicable."""
 import bz2
 import lzma

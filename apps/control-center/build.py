@@ -14,7 +14,9 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
+import os
+
+ROOT = Path(os.environ.get("INFINITY_ROOT") or Path(__file__).resolve().parents[2]).resolve()
 E = html.escape
 
 
@@ -73,23 +75,28 @@ def main() -> None:
         rows = [[r["file"], r["codec"], r["original_bytes"], r["complete_storage_bytes"],
                  f"{r['compression_ratio']:.3f}" if r["compression_ratio"] else "n/a",
                  f"{r['compress_seconds_median']*1000:.1f}", f"{r['decompress_seconds_median']*1000:.1f}",
-                 "yes" if r["reconstruction_success"] else "NO", "yes" if r["deterministic_across_repeats"] else "NO"]
+                 "yes" if r["reconstruction_success"] else "NO", "yes" if r["deterministic_across_repeats"] else "NO",
+                 (f"embedded data, {r.get('external_dependency_bytes') or '?'} B, not counted" if r.get("external_dependency") else "none")]
                 for r in sorted(recs, key=lambda r: (r["file"], r["complete_storage_bytes"]))]
         bench_html += f"<h3>{E(m['experiment_id'])}</h3>" + table(
-            ["File", "Codec", "Original B", "Stored B", "Ratio", "Comp ms", "Decomp ms", "Exact", "Deterministic"], rows)
+            ["File", "Codec", "Original B", "Stored B", "Ratio", "Comp ms", "Decomp ms", "Exact", "Deterministic", "External dependency"], rows)
         bench_html += (f"<p class='empty'>Not implemented (no results): {E(', '.join(m['not_implemented']))}. "
-                       f"Timings are medians on a shared 2-core VM and indicative only.</p>")
+                       f"Brotli rows rely on a decoder-embedded dictionary that is not counted in Stored B, so they are not directly comparable; "
+                       f"see the experiment's report.md for the headline that excludes it. Timings are order-of-magnitude only.</p>")
 
     if gates:
-        gate_html = (f"<p>Last run: {E(gates['timestamp_utc'])} · release ready: <b>{gates['release_ready']}</b></p>" +
+        gate_html = (f"<p>Last run: {E(gates['timestamp_utc'])} · release ready: <b>{E(str(gates['release_ready']))}</b></p>" +
                      "<div class='scroll'><table><thead><tr><th>Gate</th><th>Name</th><th>Status</th><th>Evidence</th></tr></thead><tbody>" +
-                     "".join(f"<tr><td>{g['id']}</td><td>{E(g['name'])}</td><td>{badge(g['status'])}</td><td>{E(g['evidence'])}</td></tr>" for g in gates["gates"]) +
+                     "".join(f"<tr><td>{E(str(g['id']))}</td><td>{E(str(g['name']))}</td><td>{badge(g['status'])}</td><td>{E(str(g['evidence']))}</td></tr>" for g in gates["gates"]) +
                      "</tbody></table></div>")
     else:
         gate_html = "<p class='empty'>Gates have not been run.</p>"
     audit_html = gate_html + "<h3>Recorded audit verdicts</h3>" + (
-        table(["Item", "Verdict"], sorted(verdict.items())) if verdict else "<p class='empty'>No verdict recorded.</p>")
-    audit_html += f"<p>AUDIT_REPORT.md present: <b>{(ROOT / 'AUDIT_REPORT.md').exists()}</b></p>"
+        table(["Item", "Verdict", "Document"], sorted([k, (v.get("verdict") if isinstance(v, dict) else v), (v.get("audit_file") if isinstance(v, dict) else "")] for k, v in verdict.items())) if verdict else "<p class='empty'>No verdict recorded.</p>")
+    docs = sorted((ROOT / "audits").glob("*.md")) if (ROOT / "audits").exists() else []
+    audit_html += "<h3>Audit documents</h3>" + (
+        "<ul>" + "".join(f"<li><code>{E(str(d.relative_to(ROOT)))}</code></li>" for d in docs) + "</ul>" if docs
+        else "<p class='empty'>No audit documents.</p>")
 
     infra = (table(["Component", "Status"], [
         ["Git repository", "initialized locally; no remote"],
@@ -98,7 +105,7 @@ def main() -> None:
         ["Scheduled automation", "not configured"],
         ["GPU", "none"],
         ["External connectors in use", "none"]]) +
-        "<p>Source of truth: <code>ENVIRONMENT_AUDIT.md</code>.</p>")
+        "<p class='empty'>Static text transcribed from <code>ENVIRONMENT_AUDIT.md</code> on 2026-10-22. It is not live telemetry; re-audit the environment to refresh it.</p>")
 
     qs = [l.strip() for l in (ROOT / "THEORY" / "unresolved_questions.md").read_text().splitlines() if re.match(r"^\d+\.", l.strip())] \
         if (ROOT / "THEORY" / "unresolved_questions.md").exists() else []

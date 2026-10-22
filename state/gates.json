@@ -1,12 +1,54 @@
 {
-  "timestamp_utc": "2026-10-22T18:46:54.391741+00:00",
-  "partial_run": true,
+  "timestamp_utc": "2026-10-22T18:54:32.337707+00:00",
+  "partial_run": false,
   "gates": [
+    {
+      "id": "GATE_01",
+      "name": "BUILD",
+      "status": "PASS",
+      "evidence": "17 python files compiled; missing deps: none; errors: none"
+    },
+    {
+      "id": "GATE_02",
+      "name": "UNIT_TESTS",
+      "status": "PASS",
+      "evidence": "pytest exit 0: 196 passed in 57.20s"
+    },
+    {
+      "id": "GATE_03",
+      "name": "INTEGRATION_TESTS",
+      "status": "PASS",
+      "evidence": "pytest exit 0: 47 passed in 15.71s"
+    },
+    {
+      "id": "GATE_04",
+      "name": "DATA_INTEGRITY",
+      "status": "PASS",
+      "evidence": "120 records in 3 experiment(s) re-checked against the dataset manifest (self-attested evidence, no re-execution); problems: none"
+    },
     {
       "id": "GATE_05",
       "name": "SECURITY",
       "status": "PARTIAL",
       "evidence": "secret scan clean (regex-based, limited); security_review: no verdict recorded"
+    },
+    {
+      "id": "GATE_06",
+      "name": "SCIENTIFIC_VALIDITY",
+      "status": "PENDING",
+      "evidence": "scientific_validity: no verdict recorded"
+    },
+    {
+      "id": "GATE_07",
+      "name": "INDEPENDENT_AUDIT",
+      "status": "PENDING",
+      "evidence": "independent_audit: no verdict recorded"
+    },
+    {
+      "id": "GATE_08",
+      "name": "STRATEGIC_APPROVAL",
+      "status": "APPROVAL_REQUIRED",
+      "evidence": "no owner approval recorded"
     }
   ],
   "release_ready": false

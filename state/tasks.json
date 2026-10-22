@@ -1,0 +1,17 @@
+{
+  "updated_note": "Hand-maintained until a task runner exists. States follow Directive 016.",
+  "tasks": [
+    {"id": "T-01", "title": "Audit environment", "state": "AUDIT", "note": "ENVIRONMENT_AUDIT.md written from observed commands; independent audit pending"},
+    {"id": "T-02", "title": "Initialize repository", "state": "TESTING", "note": "local git only, no remote"},
+    {"id": "T-03", "title": "Agent configuration (.claude/agents)", "state": "TESTING", "note": "10 role files written; not yet exercised except the audit run"},
+    {"id": "T-04", "title": "THEORY knowledge base", "state": "TESTING", "note": "7 documents; no verified findings"},
+    {"id": "T-05", "title": "Integrity tests", "state": "AUDIT", "note": "pytest suite; mutation testing by independent auditor in progress"},
+    {"id": "T-06", "title": "Benchmark runner", "state": "AUDIT", "note": "independent re-derivation in progress"},
+    {"id": "T-07", "title": "Baseline compressor package", "state": "AUDIT", "note": "5 standard codecs + INF1 container"},
+    {"id": "T-08", "title": "First experiment EXP-0001", "state": "AUDIT", "note": "pipeline check only; no research claim"},
+    {"id": "T-09", "title": "Independent audit", "state": "IN_PROGRESS", "note": "separate agent context"},
+    {"id": "T-10", "title": "Minimal control center", "state": "TESTING", "note": "static page generated from persisted files"},
+    {"id": "T-11", "title": "Automation", "state": "BLOCKED", "note": "CI file written but GitHub not connected; no scheduler configured; needs owner approval"},
+    {"id": "T-12", "title": "Owner strategic review", "state": "BACKLOG", "note": "after audit"}
+  ]
+}

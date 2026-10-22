@@ -35,7 +35,10 @@ def compress_bytes(codec_name: str, data: bytes) -> bytes:
     return header + payload
 
 
-def decompress_bytes(blob: bytes) -> bytes:
+DEFAULT_MAX_OUTPUT = 1 << 30  # 1 GiB; callers may raise or lower it
+
+
+def decompress_bytes(blob: bytes, max_output: int = DEFAULT_MAX_OUTPUT) -> bytes:
     if len(blob) < HEADER_SIZE:
         raise IntegrityError("container shorter than header")
     magic, codec_id, orig_len, sha = _HEADER.unpack(blob[:HEADER_SIZE])
@@ -44,10 +47,14 @@ def decompress_bytes(blob: bytes) -> bytes:
     codec = CODECS_BY_ID.get(codec_id)
     if codec is None:
         raise IntegrityError(f"unknown codec id {codec_id}")
+    if orig_len > max_output:
+        raise IntegrityError(f"declared length {orig_len} exceeds max_output {max_output}")
     try:
         data = codec.decompress(blob[HEADER_SIZE:], orig_len)
+    except MemoryError as exc:
+        raise IntegrityError("out of memory while decoding") from exc
     except Exception as exc:  # codec-specific errors on corrupt payloads
-        raise IntegrityError(f"payload failed to decode: {exc}") from exc
+        raise IntegrityError(f"payload failed to decode: {type(exc).__name__}: {exc}") from exc
     if len(data) != orig_len:
         raise IntegrityError("length mismatch after decode")
     if bytes.fromhex(sha256_bytes(data)) != sha:

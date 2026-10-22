@@ -1,0 +1,17 @@
+# STATUS: written but NEVER EXECUTED. GitHub is not connected in the current environment
+# (see ENVIRONMENT_AUDIT.md). Do not treat this as an active gate until a run is observed.
+name: infinity-gates
+on:
+  push:
+  pull_request:
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -r requirements-dev.txt
+      - name: Run release gates
+        run: python3 infrastructure/run_gates.py

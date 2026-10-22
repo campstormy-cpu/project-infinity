@@ -20,6 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "packages" / "compression-core"))
 
 from infinity_core import CODECS, sha256_file  # noqa: E402
+import zlib  # noqa: E402
 
 BASELINES = ["zstd-19", "lzma-9e", "brotli-11", "zlib-9", "bz2-9"]
 NOT_IMPLEMENTED = ["infinity_adaptive", "infinity_predictive", "infinity_neural"]
@@ -31,16 +32,23 @@ HEADER_BYTES = 45
 
 
 def git_state() -> dict:
+    """Fail-closed: any git error means dirty=True. Only benchmark outputs are ignored."""
     def run(*a):
         r = subprocess.run(["git", *a], cwd=ROOT, capture_output=True, text=True)
-        return r.stdout.strip() if r.returncode == 0 else None
-    return {"commit": run("rev-parse", "HEAD"), "dirty": bool(run("status", "--porcelain"))}
+        return r.stdout if r.returncode == 0 else None
+    commit = run("rev-parse", "HEAD")
+    status = run("status", "--porcelain", "--untracked-files=all")
+    if commit is None or status is None:
+        return {"commit": None, "dirty": True, "dirty_files": ["<git unavailable>"]}
+    files = [l[3:] for l in status.splitlines()
+             if not l[3:].startswith(("benchmarks/results/", "benchmarks/scratch/"))]
+    return {"commit": commit.strip(), "dirty": bool(files), "dirty_files": files}
 
 
 def versions() -> dict:
     import brotli, zstandard, pyarrow  # noqa: E401
     return {"python": platform.python_version(), "zstandard": zstandard.__version__,
-            "brotli": brotli.__version__, "pyarrow": pyarrow.__version__,
+            "brotli": brotli.__version__, "zlib_runtime": zlib.ZLIB_VERSION, "pyarrow": pyarrow.__version__,
             "platform": platform.platform(), "cpu_count": __import__("os").cpu_count()}
 
 
@@ -49,13 +57,16 @@ def main() -> None:
     ap.add_argument("--experiment-id", required=True)
     ap.add_argument("--data", default=str(ROOT / "benchmarks" / "data"))
     ap.add_argument("--repeats", type=int, default=3)
+    ap.add_argument("--results-root", default=str(ROOT / "benchmarks" / "results"))
+    ap.add_argument("--scratch-root", default=str(ROOT / "benchmarks" / "scratch"))
     args = ap.parse_args()
 
+    git = git_state()  # captured BEFORE any output is created
     data_dir = Path(args.data)
     manifest = json.loads((data_dir / "MANIFEST.json").read_text())
-    out_dir = ROOT / "benchmarks" / "results" / args.experiment_id
+    out_dir = Path(args.results_root) / args.experiment_id
     out_dir.mkdir(parents=True, exist_ok=True)
-    scratch = ROOT / "benchmarks" / "scratch" / args.experiment_id
+    scratch = Path(args.scratch_root) / args.experiment_id
 
     # Originals must match the manifest before we start.
     for name, meta in manifest["files"].items():
@@ -80,6 +91,7 @@ def main() -> None:
             r["compression_ratio"] = (n / stor) if stor else None
             r["space_savings"] = (1 - stor / n) if n else None
             r["gpu_usage"] = None  # no GPU in this environment
+            r["external_dependency"] = CODECS[codec].external_dependency
             records.append(r)
 
     # Verify every record against the manifest again (immutability) before writing.
@@ -91,7 +103,7 @@ def main() -> None:
         "dataset_id": manifest["dataset_id"],
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
         "repeats": args.repeats,
-        "git": git_state(),
+        "git": git,
         "environment": versions(),
         "container_header_bytes": HEADER_BYTES,
         "baselines_run": BASELINES,
@@ -108,7 +120,7 @@ def main() -> None:
 
     flat_cols = ["file", "codec", "original_bytes", "compressed_bytes", "complete_storage_bytes",
                  "compression_ratio", "space_savings", "compress_seconds_median", "decompress_seconds_median",
-                 "compress_cpu_seconds_median", "decompress_cpu_seconds_median", "peak_rss_kb", "baseline_rss_kb",
+                 "compress_cpu_seconds_median", "decompress_cpu_seconds_median", "peak_rss_kb", "baseline_rss_kb", "external_dependency",
                  "model_overhead_bytes", "gpu_usage", "reconstruction_success", "original_unmodified",
                  "deterministic_across_repeats", "container_sha256"]
     with open(out_dir / "results.csv", "w", newline="") as fh:
@@ -123,35 +135,65 @@ def main() -> None:
         print("parquet skipped:", exc)
 
     # ---- report.md, generated from data ----
+    def fmt_ratio(r):
+        return f"{r['compression_ratio']:.4f}" if r["compression_ratio"] else "n/a"
+
+    def fmt_sav(r):
+        if r["space_savings"] is None:
+            return "n/a"
+        return f"{r['space_savings']*100:+.3f}%"  # signed; negative = expansion
+
+    def best(rs):
+        return sorted(rs, key=lambda r: r["complete_storage_bytes"])
+
     lines = [f"# {args.experiment_id} report (generated)", "",
              f"Dataset {manifest['dataset_id']}, {len(manifest['files'])} files. Repeats per measurement: {args.repeats}.",
-             f"Git: commit `{meta['git']['commit']}`, dirty working tree: {meta['git']['dirty']}.", "",
-             "Smallest complete stored size per file (baselines only). `x` = ratio original/stored; negative savings mean expansion.", "",
-             "| file | original B | best codec | stored B | ratio | savings | runner-up |",
-             "|---|---:|---|---:|---:|---:|---|"]
+             f"Git: commit `{git['commit']}`, dirty working tree: {git['dirty']}"
+             + (f" ({', '.join(git['dirty_files'])})" if git["dirty"] else "") + ".", "",
+             "Smallest complete stored size per file. Savings are signed (negative = the stored form is larger than the original).",
+             "Brotli needs a built-in static dictionary that is **not** counted in its stored bytes (THEORY FP-07), so the "
+             "headline column excludes it and the all-codecs column shows what changes if it is included.", "",
+             "| file | original B | best (no external dependency) | stored B | ratio | savings | best incl. brotli | stored B |",
+             "|---|---:|---|---:|---:|---:|---|---:|"]
+    brotli_wins = 0
     for name in sorted(manifest["files"]):
-        rs = sorted([r for r in records if r["file"] == name], key=lambda r: r["complete_storage_bytes"])
-        b, ru = rs[0], rs[1]
-        ratio = f"{b['compression_ratio']:.3f}" if b["compression_ratio"] else "n/a"
-        sav = f"{b['space_savings']*100:.1f}%" if b["space_savings"] is not None else "n/a"
-        lines.append(f"| {name} | {b['original_bytes']} | {b['codec']} | {b['complete_storage_bytes']} | {ratio} | {sav} | {ru['codec']} ({ru['complete_storage_bytes']} B) |")
+        rs = [r for r in records if r["file"] == name]
+        clean = best([r for r in rs if not r["external_dependency"]])[0]
+        allb = best(rs)[0]
+        brotli_wins += allb["external_dependency"] is not None and allb["complete_storage_bytes"] < clean["complete_storage_bytes"]
+        lines.append(f"| {name} | {clean['original_bytes']} | {clean['codec']} | {clean['complete_storage_bytes']} | "
+                     f"{fmt_ratio(clean)} | {fmt_sav(clean)} | {allb['codec']} | {allb['complete_storage_bytes']} |")
     ok = all(r["reconstruction_success"] and r["original_unmodified"] for r in records)
     det = all(r["deterministic_across_repeats"] for r in records)
     lines += ["", f"- Measurements: {len(records)}. All reconstructions byte-exact (hash + byte compare) and originals unmodified: **{ok}**.",
               f"- Container output identical across repeats for every measurement: **{det}**.",
+              f"- Brotli (external static dictionary) is smaller than every dictionary-free codec on {brotli_wins} of {len(manifest['files'])} files.",
               f"- Not implemented, no results recorded: {', '.join(NOT_IMPLEMENTED)}.",
               "- Not applicable to this dataset: " + "; ".join(f"{k} ({v})" for k, v in NOT_APPLICABLE.items()) + ".",
-              "- This experiment checks the pipeline. It makes **no** claim of a new compression method."]
+              "",
+              "## Limitations (read before using any number)",
+              "- This experiment checks the pipeline. It makes **no** claim of a new compression method.",
+              "- The dataset is small and mostly synthetic: empty, one-byte, zeros, random, repetitive text and a generated CSV are "
+              "degenerate or artificial. Only the Python source corpus is real text, and `already_compressed.xz` is the same content re-encoded.",
+              "- Ratios on degenerate files (zeros, repetitive text) are dominated by the 45-byte header and say nothing about real data.",
+              "- Results depend on library versions (see results.json meta.environment); other builds may give different bytes.",
+              "- Timings are medians of a few repeats on a shared 2-core VM; differences under about 30% are noise. "
+              "Peak RSS covers compress and decompress together and includes the interpreter baseline.",
+              "- Reproducibility was shown on this machine only; the evidence manifest is self-attested, not independently signed."]
     (out_dir / "report.md").write_text("\n".join(lines) + "\n")
 
     # ---- SHA-256 manifest of evidence ----
     evidence = [out_dir / n for n in ("results.json", "results.csv", "results.parquet", "report.md") if (out_dir / n).exists()]
-    evidence += sorted((ROOT / "benchmarks" / "data").iterdir())
+    evidence += sorted(data_dir.iterdir())
     evidence += [ROOT / "benchmarks" / "run_benchmark.py", ROOT / "benchmarks" / "worker.py"]
     evidence += sorted((ROOT / "packages" / "compression-core" / "infinity_core").glob("*.py"))
     with open(out_dir / "MANIFEST.sha256", "w") as fh:
         for p in evidence:
-            fh.write(f"{sha256_file(p)}  {p.relative_to(ROOT)}\n")
+            try:
+                shown = p.relative_to(ROOT)
+            except ValueError:
+                shown = p  # outside the repo (tests): absolute path
+            fh.write(f"{sha256_file(p)}  {shown}\n")
     print(f"{args.experiment_id}: {len(records)} measurements, all_ok={ok}, deterministic={det}")
 
 

@@ -2,7 +2,10 @@
 name = "project-infinity"
 version = "0.1.0"
 requires-python = ">=3.11"
-dependencies = ["zstandard", "brotli", "pyarrow", "pytest"]
+dependencies = ["zstandard==0.25.0", "brotli==1.2.1", "pyarrow==26.0.0"]
+
+[project.optional-dependencies]
+dev = ["pytest==9.1.1"]
 
 [tool.pytest.ini_options]
 pythonpath = ["packages/compression-core"]

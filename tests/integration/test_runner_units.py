@@ -181,3 +181,13 @@ c = itertools.count()
 infinity_core.sha256_bytes = lambda b: str(next(c))
 """)
     assert r["deterministic_across_repeats"] is False
+
+
+def test_external_dependency_bytes_recorded_only_for_brotli(tmp_path):
+    make_dataset(tmp_path / "d")
+    res, _ = run_runner(tmp_path, tmp_path / "d")
+    for r in res["records"]:
+        if r["codec"] == "brotli-11":
+            assert r["external_dependency_bytes"] == 122784 and r["external_dependency"]
+        else:
+            assert r["external_dependency_bytes"] is None and r["external_dependency"] is None

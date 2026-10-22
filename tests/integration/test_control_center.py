@@ -80,3 +80,15 @@ def test_infrastructure_text_is_labelled_static(repo_copy):
 def test_audit_documents_are_listed_from_disk(repo_copy):
     (repo_copy / "audits" / "AUDIT_999_TEST.md").write_text("x")
     assert "AUDIT_999_TEST.md" in build(repo_copy)
+
+
+def test_older_schema_rows_say_not_recorded_instead_of_none(repo_copy):
+    html = build(repo_copy)  # EXP-0001 was written before external_dependency existed
+    assert "not recorded (older schema)" in html
+
+
+def test_gate_caveat_is_shown(repo_copy):
+    (repo_copy / "state" / "gates.json").write_text(json.dumps(
+        {"timestamp_utc": "T", "release_ready": False, "caveat": "LOCAL-FILES-CAVEAT-XYZ",
+         "gates": [{"id": "GATE_01", "name": "BUILD", "status": "PASS", "evidence": "e"}]}))
+    assert "LOCAL-FILES-CAVEAT-XYZ" in build(repo_copy)

@@ -1,5 +1,5 @@
 {
-  "updated_note": "Hand-maintained until a task runner exists. States follow Directive 016. Updated 2026-10-22 after AUDIT_002.",
+  "updated_note": "Hand-maintained until a task runner exists. Updated 2026-10-22 after AUDIT_003.",
   "tasks": [
     {
       "id": "T-01",
@@ -29,13 +29,13 @@
       "id": "T-05",
       "title": "Integrity tests",
       "state": "AUDIT",
-      "note": "hardening tests being strengthened after AUDIT_002 (vacuous tests found)"
+      "note": "hardening tests fixed after AUDIT_003 (VmHWM); fixes not yet independently re-audited"
     },
     {
       "id": "T-06",
       "title": "Benchmark runner",
       "state": "AUDIT",
-      "note": "AUDIT_002 found untested paths; tests being added"
+      "note": "tests added for runner/worker; AUDIT_003 found no new runner defects"
     },
     {
       "id": "T-07",
@@ -46,20 +46,20 @@
     {
       "id": "T-08",
       "title": "First experiment (EXP-0001/0002)",
-      "state": "AUDIT",
-      "note": "numbers independently recomputed (40/40); EXP-0003 pending with schema fixes"
+      "state": "VERIFIED",
+      "note": "EXP-0003 accepted by AUDIT_003 as a pipeline baseline (40/40 sizes and hashes independently recomputed). No research claim"
     },
     {
       "id": "T-09",
       "title": "Independent audit",
-      "state": "IN_PROGRESS",
-      "note": "AUDIT_001 and AUDIT_002 done (REVISE); scoped re-check after fixes pending"
+      "state": "APPROVAL_REQUIRED",
+      "note": "AUDIT_001-003 done; owner to decide whether another audit round is needed (see STRATEGIC_REVIEW.md D3)"
     },
     {
       "id": "T-10",
       "title": "Minimal control center",
-      "state": "TESTING",
-      "note": "escaping and Brotli caveat fixed; tests added"
+      "state": "AUDIT",
+      "note": "accepted by AUDIT_003; low findings fixed afterwards, not re-audited"
     },
     {
       "id": "T-11",
@@ -70,8 +70,8 @@
     {
       "id": "T-12",
       "title": "Owner strategic review",
-      "state": "BACKLOG",
-      "note": "after re-check"
+      "state": "APPROVAL_REQUIRED",
+      "note": "STRATEGIC_REVIEW.md written; waiting for owner decisions"
     }
   ]
 }

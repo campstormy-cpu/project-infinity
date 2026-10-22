@@ -44,17 +44,23 @@ def fast_payload(codec: str, data: bytes) -> bytes:
 
 
 def rss_growth_mb(blob_path: Path) -> tuple[str, float]:
+    # VmHWM is the process's own peak RSS and starts fresh at exec. ru_maxrss is inherited from the
+    # parent across exec, which hid all growth when the parent was already large (AUDIT_003 A3-01).
     code = f"""
-import sys, resource
+import sys
 sys.path.insert(0, {str(PKG)!r})
 from infinity_core import decompress_bytes, IntegrityError
+def hwm_mb():
+    for line in open('/proc/self/status'):
+        if line.startswith('VmHWM:'):
+            return int(line.split()[1]) / 1024
 blob = open({str(blob_path)!r}, 'rb').read()
-base = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+base = hwm_mb()
 try:
     decompress_bytes(blob); res = 'accepted'
 except IntegrityError:
     res = 'rejected'
-print(res, (resource.getrusage(resource.RUSAGE_SELF).ru_maxrss - base) / 1024)
+print(res, hwm_mb() - base)
 """
     out = subprocess.run([sys.executable, "-I", "-c", code], capture_output=True, text=True, check=True).stdout.split()
     return out[0], float(out[1])
@@ -147,3 +153,8 @@ def test_container_hash_is_integrity_not_authentication():
     forged = b"attacker chosen content"
     blob = real_header("zlib-9", forged) + zlib.compress(forged, 9)
     assert decompress_bytes(blob) == forged
+
+
+def test_default_output_cap_is_256_mib():
+    from infinity_core.container import DEFAULT_MAX_OUTPUT
+    assert DEFAULT_MAX_OUTPUT == 256 * 1024 * 1024

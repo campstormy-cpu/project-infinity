@@ -17,8 +17,8 @@ layer (Phase 0, not built).
 
 Memory bound: decoding refuses any container declaring more than `max_output`
 bytes (default 256 MiB). A hostile container that declares exactly that much can
-still force a peak of roughly twice `max_output` (measured 250-534 MB RSS across
-the five codecs on this VM, 2026-10-22: output buffer plus its returned copy). Callers
+still force a peak of roughly twice `max_output` (measured 250-593 MB RSS across
+the five codecs on this VM, 2026-10-22, two independent measurements: output buffer plus its returned copy). Callers
 with a smaller memory budget must pass a smaller `max_output`.
 """
 from __future__ import annotations

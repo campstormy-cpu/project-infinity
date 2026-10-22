@@ -76,7 +76,8 @@ def main() -> None:
                  f"{r['compression_ratio']:.3f}" if r["compression_ratio"] else "n/a",
                  f"{r['compress_seconds_median']*1000:.1f}", f"{r['decompress_seconds_median']*1000:.1f}",
                  "yes" if r["reconstruction_success"] else "NO", "yes" if r["deterministic_across_repeats"] else "NO",
-                 (f"embedded data, {r.get('external_dependency_bytes') or '?'} B, not counted" if r.get("external_dependency") else "none")]
+                 (("not recorded (older schema)" if "external_dependency" not in r else
+                   f"embedded data, {r.get('external_dependency_bytes') or '?'} B, not counted" if r.get("external_dependency") else "none"))]
                 for r in sorted(recs, key=lambda r: (r["file"], r["complete_storage_bytes"]))]
         bench_html += f"<h3>{E(m['experiment_id'])}</h3>" + table(
             ["File", "Codec", "Original B", "Stored B", "Ratio", "Comp ms", "Decomp ms", "Exact", "Deterministic", "External dependency"], rows)
@@ -86,6 +87,7 @@ def main() -> None:
 
     if gates:
         gate_html = (f"<p>Last run: {E(gates['timestamp_utc'])} · release ready: <b>{E(str(gates['release_ready']))}</b></p>" +
+                     (f"<p class='empty'>{E(str(gates['caveat']))}</p>" if gates.get("caveat") else "") +
                      "<div class='scroll'><table><thead><tr><th>Gate</th><th>Name</th><th>Status</th><th>Evidence</th></tr></thead><tbody>" +
                      "".join(f"<tr><td>{E(str(g['id']))}</td><td>{E(str(g['name']))}</td><td>{badge(g['status'])}</td><td>{E(str(g['evidence']))}</td></tr>" for g in gates["gates"]) +
                      "</tbody></table></div>")

@@ -102,10 +102,10 @@ def gate_integration():
     return _pytest("tests/integration")
 
 
-def verify_manifest(manifest: Path, commit):
+def verify_manifest(manifest: Path, commit, required=()):
     """Return list of problems. Code (.py) lines are checked against the commit the experiment ran at;
     everything else against the working tree. Paths outside the repo are rejected."""
-    problems, required = [], {"results.json", "report.md"}
+    problems = []
     lines = [l for l in manifest.read_text().splitlines() if l.strip()]
     if not lines:
         return ["manifest is empty"]
@@ -115,7 +115,7 @@ def verify_manifest(manifest: Path, commit):
             problems.append(f"malformed manifest line: {line[:60]!r}")
             continue
         h, rel = line.split("  ", 1)
-        seen.add(Path(rel).name)
+        seen.add(rel)
         p = inside_root(rel)
         if p is None:
             problems.append(f"path outside repository: {rel}")
@@ -130,15 +130,28 @@ def verify_manifest(manifest: Path, commit):
             ok = p.is_file() and sha256_path(p) == h
         if not ok:
             problems.append(f"hash mismatch: {rel}")
-    problems += [f"manifest does not cover {r}" for r in sorted(required - seen)]
+    problems += [f"manifest does not cover {r}" for r in sorted(set(required) - seen)]
     return problems
+
+
+_RECOMPUTED = {}
+
+
+def recompute(dataset_dir: Path, name: str, codec: str):
+    """Re-compress a dataset file with the CURRENT code. Returns (container_bytes, container_sha256)."""
+    key = (name, codec)
+    if key not in _RECOMPUTED:
+        from infinity_core import compress_bytes
+        blob = compress_bytes(codec, (dataset_dir / name).read_bytes())
+        _RECOMPUTED[key] = (len(blob), hashlib.sha256(blob).hexdigest())
+    return _RECOMPUTED[key]
 
 
 def gate_integrity():
     results = sorted((ROOT / "benchmarks" / "results").glob("*/results.json"))
     if not results:
         return ("NOT_EVALUATED", "no benchmark results")
-    problems, n = [], 0
+    problems, notes, n = [], [], 0
     dm_path = ROOT / "benchmarks" / "data" / "MANIFEST.json"
     if not dm_path.is_file():
         return ("FAIL", "dataset manifest missing")
@@ -151,8 +164,12 @@ def gate_integrity():
         exp = rj.parent.name
         data = json.loads(rj.read_text())
         recs, meta = data["records"], data["meta"]
+        from infinity_core import CODECS
+        registry = set(CODECS)
         codecs = meta.get("baselines_run", [])
-        expected = {(f, c) for f in dm["files"] for c in codecs}
+        if not registry <= set(codecs):  # the experiment cannot choose a weaker codec set for itself
+            problems.append(f"{exp}: baselines_run misses registered codecs {sorted(registry - set(codecs))}")
+        expected = {(f, c) for f in dm["files"] for c in registry}
         got = [(r["file"], r["codec"]) for r in recs]
         if not codecs or set(got) != expected or len(got) != len(expected):
             problems.append(f"{exp}: records do not match dataset x baselines ({len(got)} vs {len(expected)})")
@@ -171,10 +188,25 @@ def gate_integrity():
         if not mp.is_file():
             problems.append(f"{exp}: MANIFEST.sha256 missing")
         else:
-            problems += [f"{exp}: {x}" for x in verify_manifest(mp, meta.get("git", {}).get("commit"))]
-    return ("PASS" if not problems else "FAIL",
-            f"{n} records in {len(results)} experiment(s) re-checked against the dataset manifest "
-            f"(self-attested evidence, no re-execution); problems: {problems or 'none'}")
+            req = [f"benchmarks/results/{exp}/results.json", f"benchmarks/results/{exp}/report.md"]
+            problems += [f"{exp}: {x}" for x in verify_manifest(mp, meta.get("git", {}).get("commit"), req)]
+        # Re-execution: recompute every stored size and container hash from the dataset.
+        env = meta.get("environment", {})
+        import brotli, zstandard
+        same_libs = env.get("zstandard") == zstandard.__version__ and env.get("brotli") == brotli.__version__
+        for r in recs:
+            if r["file"] not in dm["files"] or r["codec"] not in registry:
+                continue
+            size, h = recompute(ROOT / "benchmarks" / "data", r["file"], r["codec"])
+            if (size, h) != (r.get("complete_storage_bytes"), r.get("container_sha256")):
+                (problems if same_libs else notes).append(
+                    f"{exp}:{r['file']}:{r['codec']}: recomputed size/hash differ from recorded"
+                    + ("" if same_libs else " (library versions differ, so not conclusive)"))
+    status = "FAIL" if problems else ("PARTIAL" if notes else "PASS")
+    return (status,
+            f"{n} records in {len(results)} experiment(s) checked against the dataset manifest and the codec registry; "
+            f"sizes and container hashes recomputed from the dataset with the current code; "
+            f"problems: {problems or 'none'}; inconclusive: {notes or 'none'}")
 
 
 SECRET_PATTERNS = [r"AKIA[0-9A-Z]{16}", r"-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----", r"ghp_[A-Za-z0-9]{36}",
@@ -274,6 +306,8 @@ def main(argv=None) -> int:
             status, evidence = "FAIL", "gate crashed: " + traceback.format_exc().strip().splitlines()[-1]
         out["gates"].append({"id": gid, "name": name, "status": status, "evidence": evidence})
         print(f"{gid} {name:20s} {status:18s} {evidence}")
+    out["caveat"] = ("Gates 05-08 depend on local, unauthenticated files (state/audit_verdict.json, state/owner_approval.json). "
+                     "A verdict is bound to the hash of the audit document it cites, not to that document's conclusion.")
     out["release_ready"] = (not only) and len(out["gates"]) == len(GATES) and all(g["status"] == "PASS" for g in out["gates"])
     tmp = out_path.with_suffix(".json.tmp")
     tmp.write_text(json.dumps(out, indent=2) + "\n")

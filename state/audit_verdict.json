@@ -1,0 +1,8 @@
+{
+  "independent_audit": {
+    "verdict": "PENDING",
+    "audit_file": "audits/AUDIT_003_RECHECK.md",
+    "audit_sha256": "d2a272d56bd093b2a47bc0504b380a85a8e5c0ba9437b5b7c39990ccf4ef6f0a",
+    "note": "AUDIT_003: (a) fixes REVISE (minor), (b) EXP-0003 ACCEPT, (c) gate runner ACCEPT with caveats, (d) control center ACCEPT. Two medium findings (A3-01, A3-02) were fixed afterwards and are NOT yet re-audited, so no PASS is recorded."
+  }
+}

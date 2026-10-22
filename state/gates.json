@@ -1,5 +1,5 @@
 {
-  "timestamp_utc": "2026-10-22T18:54:32.337707+00:00",
+  "timestamp_utc": "2026-10-22T19:50:30.522905+00:00",
   "partial_run": false,
   "gates": [
     {
@@ -12,19 +12,19 @@
       "id": "GATE_02",
       "name": "UNIT_TESTS",
       "status": "PASS",
-      "evidence": "pytest exit 0: 196 passed in 57.20s"
+      "evidence": "pytest exit 0: 214 passed in 158.49s (0:02:38)"
     },
     {
       "id": "GATE_03",
       "name": "INTEGRATION_TESTS",
       "status": "PASS",
-      "evidence": "pytest exit 0: 47 passed in 15.71s"
+      "evidence": "pytest exit 0: 64 passed in 116.66s (0:01:56)"
     },
     {
       "id": "GATE_04",
       "name": "DATA_INTEGRITY",
       "status": "PASS",
-      "evidence": "120 records in 3 experiment(s) re-checked against the dataset manifest (self-attested evidence, no re-execution); problems: none"
+      "evidence": "120 records in 3 experiment(s) checked against the dataset manifest and the codec registry; sizes and container hashes recomputed from the dataset with the current code; problems: none; inconclusive: none"
     },
     {
       "id": "GATE_05",
@@ -42,7 +42,7 @@
       "id": "GATE_07",
       "name": "INDEPENDENT_AUDIT",
       "status": "PENDING",
-      "evidence": "independent_audit: no verdict recorded"
+      "evidence": "independent_audit: recorded verdict PENDING in audits/AUDIT_003_RECHECK.md"
     },
     {
       "id": "GATE_08",
@@ -51,5 +51,6 @@
       "evidence": "no owner approval recorded"
     }
   ],
+  "caveat": "Gates 05-08 depend on local, unauthenticated files (state/audit_verdict.json, state/owner_approval.json). A verdict is bound to the hash of the audit document it cites, not to that document's conclusion.",
   "release_ready": false
 }

@@ -228,3 +228,116 @@ def test_symlink_check_is_what_blocks_escapes_not_just_dotdot(repo_copy, tmp_pat
     m.write_text(m.read_text() + f"{sha(outside)}  benchmarks/results/EXP-0002/l2.txt\n")
     st = run_gates(repo_copy, "GATE_04")[0]["GATE_04"]
     assert st[0] == "FAIL" and "outside repository" in st[1]
+
+
+# ---------------------------------------------------------------- AUDIT_003 A3-02 and test gaps
+def tamper_results(root: Path, fn):
+    p = exp_dir(root) / "results.json"
+    d = json.loads(p.read_text())
+    fn(d)
+    p.write_text(json.dumps(d))
+    write_manifest_for(exp_dir(root), root)  # a forger re-hashes the manifest so the files agree
+
+
+def gate4(root):
+    return run_gates(root, "GATE_04")[0]["GATE_04"]
+
+
+def test_manifest_listing_another_experiments_results_does_not_count(repo_copy):
+    """Coverage is by full relative path, not basename (A3-02)."""
+    m = exp_dir(repo_copy) / "MANIFEST.sha256"
+    other = repo_copy / "benchmarks" / "results" / "EXP-0001" / "results.json"
+    keep = [l for l in m.read_text().splitlines() if not l.endswith("EXP-0002/results.json")]
+    keep.append(f"{sha(other)}  benchmarks/results/EXP-0001/results.json")
+    m.write_text("\n".join(keep) + "\n")
+    st = gate4(repo_copy)
+    assert st[0] == "FAIL" and "does not cover benchmarks/results/EXP-0002/results.json" in st[1]
+
+
+def test_one_codec_experiment_cannot_define_its_own_baseline_set(repo_copy):
+    def only_zlib(d):
+        d["meta"]["baselines_run"] = ["zlib-9"]
+        d["records"] = [r for r in d["records"] if r["codec"] == "zlib-9"]
+    tamper_results(repo_copy, only_zlib)
+    st = gate4(repo_copy)
+    assert st[0] == "FAIL" and "misses registered codecs" in st[1]
+
+
+def test_fabricated_sizes_are_caught_by_recomputation(repo_copy):
+    def fake(d):
+        d["records"][0]["complete_storage_bytes"] -= 1000
+    tamper_results(repo_copy, fake)
+    st = gate4(repo_copy)
+    assert st[0] == "FAIL" and "recomputed size/hash differ" in st[1]
+
+
+def test_fabricated_container_hash_is_caught(repo_copy):
+    def fake(d):
+        d["records"][5]["container_sha256"] = "0" * 64
+    tamper_results(repo_copy, fake)
+    assert gate4(repo_copy)[0] == "FAIL"
+
+
+def test_duplicate_record_fails(repo_copy):
+    tamper_results(repo_copy, lambda d: d["records"].append(dict(d["records"][0])))
+    assert gate4(repo_copy)[0] == "FAIL"
+
+
+def test_extra_unknown_record_fails(repo_copy):
+    def extra(d):
+        r = dict(d["records"][0])
+        r["file"] = "ghost.bin"
+        d["records"].append(r)
+    tamper_results(repo_copy, extra)
+    assert gate4(repo_copy)[0] == "FAIL"
+
+
+@pytest.mark.parametrize("field,value", [("reconstruction_success", "yes"), ("original_unmodified", 1)])
+def test_non_boolean_flags_do_not_count_as_true(repo_copy, field, value):
+    tamper_results(repo_copy, lambda d: d["records"][2].__setitem__(field, value))
+    st = gate4(repo_copy)
+    assert st[0] == "FAIL" and "recovery not verified" in st[1]
+
+
+def test_dataset_id_mismatch_fails(repo_copy):
+    tamper_results(repo_copy, lambda d: d["meta"].__setitem__("dataset_id", "DS-OTHER"))
+    st = gate4(repo_copy)
+    assert st[0] == "FAIL" and "dataset id mismatch" in st[1]
+
+
+def test_differing_library_versions_make_recompute_inconclusive_not_pass(repo_copy):
+    def other_versions(d):
+        d["meta"]["environment"]["zstandard"] = "0.0.1"
+        d["records"][0]["container_sha256"] = "0" * 64
+    tamper_results(repo_copy, other_versions)
+    st = gate4(repo_copy)
+    assert st[0] == "PARTIAL" and "not conclusive" in st[1]
+
+
+def test_blank_owner_scope_is_not_approval(repo_copy):
+    (repo_copy / "state").mkdir(exist_ok=True)
+    (repo_copy / "state" / "owner_approval.json").write_text(
+        json.dumps({"approved": True, "approved_by": "Esteban", "scope": "   "}))
+    assert run_gates(repo_copy, "GATE_08")[0]["GATE_08"][0] == "APPROVAL_REQUIRED"
+
+
+def test_unit_and_integration_gates_fail_when_tests_fail(repo_copy):
+    shutil.rmtree(repo_copy / "tests")
+    (repo_copy / "tests" / "integration").mkdir(parents=True)
+    (repo_copy / "tests" / "integration" / "test_fail.py").write_text("def test_x():\n    assert False\n")
+    st = run_gates(repo_copy, "GATE_02", "GATE_03")[0]
+    assert st["GATE_02"][0] == "FAIL" and st["GATE_03"][0] == "FAIL"
+
+
+def test_unit_gate_is_not_evaluated_without_tests_and_zero_passed_is_not_pass(repo_copy):
+    shutil.rmtree(repo_copy / "tests")
+    st = run_gates(repo_copy, "GATE_02", "GATE_03")[0]
+    assert st["GATE_02"][0] == "NOT_EVALUATED" and st["GATE_03"][0] == "NOT_EVALUATED"
+    (repo_copy / "tests").mkdir()
+    (repo_copy / "tests" / "test_skip.py").write_text("import pytest\n@pytest.mark.skip\ndef test_x():\n    pass\n")
+    assert run_gates(repo_copy, "GATE_02")[0]["GATE_02"][0] == "FAIL"  # nothing passed
+
+
+def test_gates_json_carries_attestation_caveat(repo_copy):
+    _, data, _ = run_gates(repo_copy, "GATE_01")
+    assert "unauthenticated" in data["caveat"]

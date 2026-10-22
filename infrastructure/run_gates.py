@@ -6,7 +6,6 @@ Only PASS counts. A gate with no check implemented is NOT_EVALUATED, never PASS.
 Writes state/gates.json. Exit code 0 only if every gate is PASS.
 """
 import json
-import py_compile
 import re
 import subprocess
 import sys
@@ -32,9 +31,9 @@ def gate_build():
     errs = []
     for p in py_files():
         try:
-            py_compile.compile(str(p), doraise=True, cfile="/dev/null")
-        except py_compile.PyCompileError as e:
-            errs.append(str(e))
+            compile(p.read_text(), str(p), "exec")  # syntax check without writing bytecode
+        except SyntaxError as e:
+            errs.append(f"{p.relative_to(ROOT)}: {e}")
     deps = []
     for mod in ("zstandard", "brotli", "lzma", "zlib", "bz2", "pyarrow", "pytest"):
         try:

@@ -1,0 +1,38 @@
+{
+  "dataset_id": "DS-0001",
+  "files": {
+    "already_compressed.xz": {
+      "bytes": 106680,
+      "sha256": "41fb4b7db9118ba2d123deefc44a3b5744e6f946a50412f830160f85e2ea4fd9"
+    },
+    "empty.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "one_byte.bin": {
+      "bytes": 1,
+      "sha256": "559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd"
+    },
+    "python_source_corpus.txt": {
+      "bytes": 476341,
+      "sha256": "13ec8b87e77c39adf00c1d80c5f0a18b36cba92f4565c4998097e8c4e9ec081f"
+    },
+    "random_256KiB.bin": {
+      "bytes": 262144,
+      "sha256": "fc8add4505f87a1a831f2014fe5e1cb90df34175ffe6b8761a1af3f2a5f64f08"
+    },
+    "repetitive_text_256KiB.txt": {
+      "bytes": 262144,
+      "sha256": "c8b4f84cfe5d25a4619866f9a51a02a1086557054d6f67ead3e39521405bce6f"
+    },
+    "synthetic_table_csv.csv": {
+      "bytes": 384887,
+      "sha256": "a5421e067dfa29093cadaaa6c4a46e436257ff5d4e10d05c583905df7c594dcc"
+    },
+    "zeros_256KiB.bin": {
+      "bytes": 262144,
+      "sha256": "8a39d2abd3999ab73c34db2476849cddf303ce389b35826850f9a700589b4a90"
+    }
+  },
+  "note": "python_source_corpus.txt was built from the stdlib files listed in make_dataset.py on Python 3.13.16; regenerating on another Python version may give different bytes. Use the committed files and this manifest as ground truth."
+}

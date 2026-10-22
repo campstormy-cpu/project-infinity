@@ -1,0 +1,9 @@
+[project]
+name = "project-infinity"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = ["zstandard", "brotli", "pyarrow", "pytest"]
+
+[tool.pytest.ini_options]
+pythonpath = ["packages/compression-core"]
+testpaths = ["tests"]

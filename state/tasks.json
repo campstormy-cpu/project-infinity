@@ -65,13 +65,13 @@
       "id": "T-11",
       "title": "Automation",
       "state": "BLOCKED",
-      "note": "Owner approved connecting GitHub 2026-10-23. Blocked on which account/repo: gh sees account campstormy-cpu (created 2026-10-05, empty, token without scopes), not confirmed as owner's. Nothing pushed."
+      "note": "Owner confirmed campstormy-cpu is his account (2026-10-23). This session cannot create repos (API refuses). Waiting for owner to create an empty PRIVATE repo, then attach it with add_repo (push access). Nothing pushed; CI still never executed."
     },
     {
       "id": "T-12",
       "title": "Owner strategic review",
       "state": "APPROVAL_REQUIRED",
-      "note": "D3 decided (accept risk). D1 data type and D2 GitHub target pending."
+      "note": "D3 decided (accept risk). D2 account confirmed, repo creation pending. D1: owner chose his own files plus a public corpus; files not yet provided."
     }
   ]
 }

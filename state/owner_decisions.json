@@ -18,8 +18,15 @@
       "id": "D2",
       "date": "2026-10-23",
       "topic": "Connect GitHub",
-      "decision": "Owner wants GitHub connected with his own files. Pending: which account/repository (see state/tasks.json T-11).",
+      "decision": "Owner confirmed campstormy-cpu is his GitHub account and wants GitHub connected. Repo must be created by the owner (session cannot create repos); then attached with push access.",
       "owner_words": "conecta github, tiene que ser archivos mios"
+    },
+    {
+      "id": "D1",
+      "date": "2026-10-23",
+      "topic": "Phase 2 target data",
+      "decision": "Corpus of the owner's own non-sensitive files plus a public corpus of the same type for fair comparison. Files not yet provided.",
+      "owner_words": "tiene que ser archivos mios (confirmed in follow-up: mis archivos y un corpus publico)"
     }
   ]
 }

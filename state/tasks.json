@@ -1,5 +1,5 @@
 {
-  "updated_note": "Hand-maintained until a task runner exists. Updated 2026-10-22 after AUDIT_003.",
+  "updated_note": "Hand-maintained until a task runner exists. Updated 2026-10-23.",
   "tasks": [
     {
       "id": "T-01",
@@ -52,8 +52,8 @@
     {
       "id": "T-09",
       "title": "Independent audit",
-      "state": "APPROVAL_REQUIRED",
-      "note": "AUDIT_001-003 done; owner to decide whether another audit round is needed (see STRATEGIC_REVIEW.md D3)"
+      "state": "VERIFIED",
+      "note": "AUDIT_001-003 done; owner accepted residual risk 2026-10-23 (state/owner_decisions.json). No further round."
     },
     {
       "id": "T-10",
@@ -65,13 +65,13 @@
       "id": "T-11",
       "title": "Automation",
       "state": "BLOCKED",
-      "note": "CI file never executed (GitHub not connected); no scheduler; needs owner approval"
+      "note": "Owner approved connecting GitHub 2026-10-23. Blocked on which account/repo: gh sees account campstormy-cpu (created 2026-10-05, empty, token without scopes), not confirmed as owner's. Nothing pushed."
     },
     {
       "id": "T-12",
       "title": "Owner strategic review",
       "state": "APPROVAL_REQUIRED",
-      "note": "STRATEGIC_REVIEW.md written; waiting for owner decisions"
+      "note": "D3 decided (accept risk). D1 data type and D2 GitHub target pending."
     }
   ]
 }

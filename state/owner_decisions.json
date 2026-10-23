@@ -1,0 +1,25 @@
+{
+  "decisions": [
+    {
+      "id": "D3",
+      "date": "2026-10-23",
+      "topic": "Independent audit round 4",
+      "decision": "Owner accepts the residual risk; no further audit round before continuing.",
+      "owner_words": "aceptamos el riesgo residual",
+      "scope": "Infrastructure work continues. This is NOT a release approval and NOT an audit PASS: gates 06/07 stay without PASS, and GATE_08 needs a separate approval.",
+      "residual_risks": [
+        "A3-01/A3-02 fixes and later low fixes verified only by developer tests and mutation runs",
+        "memory ceiling about twice max_output on hostile containers",
+        "audit verdict and owner approval files are local and unauthenticated",
+        "security gate is a regex scan with no review"
+      ]
+    },
+    {
+      "id": "D2",
+      "date": "2026-10-23",
+      "topic": "Connect GitHub",
+      "decision": "Owner wants GitHub connected with his own files. Pending: which account/repository (see state/tasks.json T-11).",
+      "owner_words": "conecta github, tiene que ser archivos mios"
+    }
+  ]
+}

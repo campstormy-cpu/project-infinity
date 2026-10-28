@@ -1,5 +1,5 @@
 {
-  "timestamp_utc": "2026-10-28T05:59:07.809468+00:00",
+  "timestamp_utc": "2026-10-28T06:13:17.662040+00:00",
   "partial_run": false,
   "gates": [
     {
@@ -12,13 +12,13 @@
       "id": "GATE_02",
       "name": "UNIT_TESTS",
       "status": "PASS",
-      "evidence": "pytest exit 0: 268 passed in 110.39s (0:01:50)"
+      "evidence": "pytest exit 0: 274 passed in 116.67s (0:01:56)"
     },
     {
       "id": "GATE_03",
       "name": "INTEGRATION_TESTS",
       "status": "PASS",
-      "evidence": "pytest exit 0: 64 passed in 85.00s (0:01:25)"
+      "evidence": "pytest exit 0: 70 passed in 84.66s (0:01:24)"
     },
     {
       "id": "GATE_04",

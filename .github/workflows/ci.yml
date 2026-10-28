@@ -1,5 +1,6 @@
-# STATUS: written but NEVER EXECUTED. GitHub is not connected in the current environment
-# (see ENVIRONMENT_AUDIT.md). Do not treat this as an active gate until a run is observed.
+# STATUS: executed on GitHub since 2026-10-28 (first run failed because the runner exits 1 while release_ready is False).
+# --ci makes the job green when GATE_01..04 pass. GREEN DOES NOT MEAN RELEASE-READY: gates 05-08 are still printed
+# and release_ready stays False until audits and owner approval exist.
 name: infinity-gates
 on:
   push:
@@ -16,4 +17,4 @@ jobs:
           python-version: "3.13"
       - run: pip install -r requirements-dev.txt
       - name: Run release gates
-        run: python3 infrastructure/run_gates.py
+        run: python3 infrastructure/run_gates.py --ci

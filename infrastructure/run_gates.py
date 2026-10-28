@@ -288,6 +288,8 @@ GATES = [("GATE_01", "BUILD", gate_build), ("GATE_02", "UNIT_TESTS", gate_unit),
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--only", help="comma-separated gate ids; release_ready is then always False")
+    ap.add_argument("--ci", action="store_true",
+                    help="exit 0 when GATE_01..04 all PASS (release_ready is still computed honestly and printed)")
     args = ap.parse_args(argv)
     only = set(args.only.split(",")) if args.only else None
 
@@ -313,6 +315,11 @@ def main(argv=None) -> int:
     tmp.write_text(json.dumps(out, indent=2) + "\n")
     os.replace(tmp, out_path)
     print("release_ready:", out["release_ready"])
+    if args.ci:
+        core = {g["id"]: g["status"] for g in out["gates"]}
+        ok = all(core.get(f"GATE_0{i}") == "PASS" for i in range(1, 5))
+        print("ci_core_gates_01_04:", "PASS" if ok else "FAIL", "(not a release decision)")
+        return 0 if ok else 1
     return 0 if out["release_ready"] else 1
 
 

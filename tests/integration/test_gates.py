@@ -341,3 +341,39 @@ def test_unit_gate_is_not_evaluated_without_tests_and_zero_passed_is_not_pass(re
 def test_gates_json_carries_attestation_caveat(repo_copy):
     _, data, _ = run_gates(repo_copy, "GATE_01")
     assert "unauthenticated" in data["caveat"]
+
+
+# ---------------------------------------------------------------- --ci mode (green != release-ready)
+def _load_runner(tmp_path, monkeypatch):
+    import importlib.util
+    import os
+    monkeypatch.setenv("INFINITY_ROOT", str(tmp_path))
+    spec = importlib.util.spec_from_file_location("run_gates_ci", Path(__file__).resolve().parents[2] / "infrastructure" / "run_gates.py")
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    m.STATE = tmp_path / "state"
+    return m
+
+
+def _fake(status):
+    return lambda: (status, "fake")
+
+
+def test_ci_mode_green_when_core_pass_but_never_release_ready(tmp_path, monkeypatch):
+    m = _load_runner(tmp_path, monkeypatch)
+    m.GATES = [(f"GATE_0{i}", "X", _fake("PASS" if i <= 4 else "PENDING")) for i in range(1, 9)]
+    assert m.main(["--ci"]) == 0
+    assert json.loads((tmp_path / "state" / "gates.json").read_text())["release_ready"] is False
+
+
+@pytest.mark.parametrize("bad", [1, 2, 3, 4])
+def test_ci_mode_red_when_any_core_gate_not_pass(tmp_path, monkeypatch, bad):
+    m = _load_runner(tmp_path, monkeypatch)
+    m.GATES = [(f"GATE_0{i}", "X", _fake("FAIL" if i == bad else "PASS")) for i in range(1, 9)]
+    assert m.main(["--ci"]) == 1
+
+
+def test_ci_mode_with_partial_run_is_red(tmp_path, monkeypatch):
+    m = _load_runner(tmp_path, monkeypatch)
+    m.GATES = [(f"GATE_0{i}", "X", _fake("PASS")) for i in range(1, 9)]
+    assert m.main(["--ci", "--only", "GATE_01"]) == 1

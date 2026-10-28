@@ -34,6 +34,18 @@
       "topic": "Project direction",
       "decision": "Route C: build an encrypted vault (Phase 0) first as a small product; compression becomes a module afterwards.",
       "owner_words": "la C"
+    },
+    {
+      "id": "D5",
+      "date": "2026-10-27",
+      "decision": "Compression research moves to background; vault/security is the main line.",
+      "source": "owner message"
+    },
+    {
+      "id": "D6",
+      "date": "2026-10-27",
+      "decision": "GitHub repo campstormy-cpu/project-infinity created by owner; it is PUBLIC. No push until owner confirms public or makes it private.",
+      "source": "list_repos"
     }
   ]
 }

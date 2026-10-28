@@ -28,7 +28,8 @@ Design rules
     constant time, which stops multi-key ("partitioning oracle") tricks.
   * Header-supplied costs are bounded BEFORE any expensive work (Argon2 memory, body length), the
     lesson of the decompression-bomb findings in audits/AUDIT_001..003.
-  * Wrong key and damaged file give the same DecryptError. Not-a-vault and wrong-mode give FormatError.
+  * Wrong key and damaged ciphertext/wrapped key give the same DecryptError. Not-a-vault, wrong-mode, bad
+    lengths and out-of-bounds KDF parameters give FormatError, checked BEFORE any key derivation (AUDIT_004 F6).
 
 Known limits (also in the threat model): file size, mode and flags are visible; Python cannot wipe
 keys from memory; the whole file is processed in memory (size capped); no authentication of WHO
@@ -59,7 +60,7 @@ KNOWN_FLAGS = FLAG_COMPRESSED
 
 DEFAULT_MAX_PLAINTEXT = 256 * 1024 * 1024
 MIN_PASSPHRASE_CHARS = 12
-MAX_KDF_KIB = 1 << 20  # 1 GiB ceiling on header-supplied Argon2 memory
+MAX_KDF_KIB = 512 * 1024  # 512 MiB ceiling on header-supplied Argon2 memory (2x the default)
 MAX_KDF_T = 10
 MAX_KDF_LANES = 16
 MLKEM_CT_LEN = 1088
@@ -114,9 +115,13 @@ def _commit(key: bytes, label: bytes) -> bytes:
 def _norm_passphrase(passphrase: str) -> bytes:
     if not isinstance(passphrase, str):
         raise TypeError("passphrase must be str")
-    if len(passphrase) < MIN_PASSPHRASE_CHARS:
+    normalized = unicodedata.normalize("NFKC", passphrase)
+    if len(normalized) < MIN_PASSPHRASE_CHARS:  # counted AFTER normalization (AUDIT_004 F2)
         raise ValueError(f"passphrase must have at least {MIN_PASSPHRASE_CHARS} characters")
-    return unicodedata.normalize("NFKC", passphrase).encode("utf-8")
+    try:
+        return normalized.encode("utf-8")
+    except UnicodeEncodeError:  # lone surrogates (AUDIT_004 F3)
+        raise ValueError("passphrase contains invalid Unicode") from None
 
 
 def _kek_from_passphrase(passphrase: bytes, salt: bytes, p: KdfParams) -> bytes:
@@ -143,21 +148,28 @@ def _seal(plaintext: bytes, kek: bytes, header_prefix_builder, flags: int, max_p
     return pre + _LEN.pack(len(body)) + body
 
 
-def _open(blob: bytes, header_len: int, kek: bytes, max_plaintext: int) -> tuple[bytes, int]:
-    """Validate commitments, unwrap DEK, decrypt body. Returns (payload, flags)."""
-    pos = header_len
-    need = pos + 12 + _WRAP_CT + 12 + _LEN.size
+def _precheck(blob: bytes, header_len: int, max_plaintext: int) -> tuple[int, int]:
+    """Cheap structural checks. Called BEFORE any key derivation so a malformed file never costs Argon2
+    time or memory (AUDIT_004 F1). Returns (need, body_len)."""
+    need = header_len + 12 + _WRAP_CT + 12 + _LEN.size
     if len(blob) < need:
         raise FormatError("file truncated")
-    header = blob[:header_len]
-    wrap_nonce = blob[pos:pos + 12]
-    wrapped = blob[pos + 12:pos + 12 + _WRAP_CT]
-    body_nonce = blob[pos + 12 + _WRAP_CT:pos + 24 + _WRAP_CT]
     (body_len,) = _LEN.unpack(blob[need - _LEN.size:need])
     if body_len < 16 or body_len > max_plaintext + OVERHEAD_SLACK + 16:
         raise FormatError("body length out of bounds")
     if len(blob) != need + body_len:
         raise FormatError("file truncated or has trailing data")
+    return need, body_len
+
+
+def _open(blob: bytes, header_len: int, kek: bytes, max_plaintext: int) -> tuple[bytes, int]:
+    """Validate commitments, unwrap DEK, decrypt body. Returns (payload, flags)."""
+    pos = header_len
+    need, body_len = _precheck(blob, header_len, max_plaintext)
+    header = blob[:header_len]
+    wrap_nonce = blob[pos:pos + 12]
+    wrapped = blob[pos + 12:pos + 12 + _WRAP_CT]
+    body_nonce = blob[pos + 12 + _WRAP_CT:pos + 24 + _WRAP_CT]
     kek_commit = header[-32:] if header[5] == MODE_PASSPHRASE else header[_BASE.size + 32 + MLKEM_CT_LEN:_BASE.size + 64 + MLKEM_CT_LEN]
     if not hmac.compare_digest(kek_commit, _commit(kek, b"kek")):
         raise DecryptError("cannot decrypt (wrong key or damaged file)")
@@ -234,6 +246,7 @@ def decrypt_with_passphrase(blob: bytes, passphrase: str, *, max_plaintext: int 
     salt, m_kib, t, lanes, _ = _PASS.unpack(blob[_BASE.size:hl])
     params = KdfParams(m_kib, t, lanes)
     params.check(max_kdf_kib)  # bounded BEFORE any expensive work
+    _precheck(blob, hl, max_plaintext + OVERHEAD_SLACK)  # structure before Argon2 (AUDIT_004 F1)
     pw = _norm_passphrase(passphrase)
     kek = _kek_from_passphrase(pw, salt, params)
     payload, flags = _open(blob, hl, kek, max_plaintext + OVERHEAD_SLACK)
@@ -283,8 +296,8 @@ class RecipientKeys:
     @staticmethod
     def import_private(blob: bytes, passphrase: str, *, max_kdf_kib: int = MAX_KDF_KIB) -> "RecipientKeys":
         raw = decrypt_with_passphrase(blob, passphrase, max_plaintext=4096, max_kdf_kib=max_kdf_kib)
-        if len(raw) != 96:
-            raise FormatError("not a recipient key file")
+        if len(raw) != 96:  # same error as a wrong passphrase: no oracle (AUDIT_004 F4)
+            raise DecryptError("cannot decrypt (wrong key or damaged file)")
         return RecipientKeys(x25519.X25519PrivateKey.from_private_bytes(raw[:32]),
                              mlkem.MLKEM768PrivateKey.from_seed_bytes(raw[32:]))
 
@@ -294,7 +307,10 @@ def encrypt_for_recipient(data: bytes, recipient: RecipientPublic, *, compress: 
     payload, flags = _prepare(data, compress, max_plaintext)
     eph = x25519.X25519PrivateKey.generate()
     eph_pub = eph.public_key().public_bytes_raw()
-    ss_x = eph.exchange(x25519.X25519PublicKey.from_public_bytes(recipient.x25519))
+    try:
+        ss_x = eph.exchange(x25519.X25519PublicKey.from_public_bytes(recipient.x25519))
+    except ValueError:  # low-order / invalid public key (AUDIT_004 F5)
+        raise VaultError("invalid recipient public key") from None
     ss_k, mlkem_ct = mlkem.MLKEM768PublicKey.from_public_bytes(recipient.mlkem768).encapsulate()
     kek = _hybrid_kek(ss_x, ss_k, eph_pub, mlkem_ct, recipient.x25519, recipient.mlkem768)
     rid = recipient.key_id()
@@ -308,6 +324,7 @@ def decrypt_for_recipient(blob: bytes, keys: RecipientKeys, *, max_plaintext: in
     if len(blob) < hl:
         raise FormatError("file truncated")
     eph_pub, mlkem_ct, _commit_stored, rid = _HYB.unpack(blob[_BASE.size:hl])
+    _precheck(blob, hl, max_plaintext + OVERHEAD_SLACK)
     pub = keys.public()
     if not hmac.compare_digest(rid, pub.key_id()):
         raise DecryptError("cannot decrypt (wrong key or damaged file)")

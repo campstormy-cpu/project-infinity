@@ -1,7 +1,7 @@
 # Modelo de amenazas — bóveda INV1 (prototipo)
 
 Estado: **prototipo sin revisión externa.** No lo uses todavía para proteger secretos reales (ver sección 7).
-Fecha: 2026-10-27. Código: `packages/vault/`. Pruebas: `tests/vault/` (54).
+Fecha: 2026-10-27. Código: `packages/vault/`. Pruebas: `tests/vault/` (63, incluidas pruebas de fuzzing con semilla fija).
 
 Las afirmaciones están marcadas así: **[construido]** existe y tiene prueba; **[no construido]** es diseño o deseo;
 **[conocimiento general]** no lo verifiqué en esta sesión con una fuente.
@@ -19,7 +19,7 @@ Las afirmaciones están marcadas así: **[construido]** existe y tiene prueba; *
 
 - **Un equipo comprometido.** Malware, keylogger o alguien con acceso a tu sesión ve la frase y el contenido descifrado.
 - **Una frase débil.** Argon2id encarece cada intento, pero si la frase es adivinable, cae. Es el eslabón más débil.
-- **Metadatos.** Se ve el tamaño aproximado, el modo y las banderas **[construido]**. No se oculta el nombre del archivo porque no se guarda; eso lo decides tú al nombrarlo.
+- **Metadatos.** Se ve el tamaño aproximado, el modo y las banderas **[construido]**. En modo con llaves la cabecera lleva un identificador del destinatario (hash de su llave pública): quien vea varios archivos puede agruparlos por destinatario (AUDIT_004 F8). No se oculta el nombre del archivo porque no se guarda; eso lo decides tú al nombrarlo.
 - **Quién cifró.** El modo híbrido es de remitente anónimo: cualquiera con tu llave pública puede crear un archivo para ti. Firmar con ML-DSA es posible con la misma biblioteca **[no construido]**.
 - **Borrado o reversión.** Alguien puede borrar un archivo o devolver una versión vieja válida. No hay control de versiones firmado **[no construido]**.
 - **Memoria.** Python no puede borrar las llaves de la memoria de forma fiable.
@@ -58,9 +58,11 @@ Ver `docs/adr/ADR-001-vault.md` para las decisiones y alternativas.
 
 ## 6. Evidencia
 
-- 54 pruebas pasan. Cubren ida y vuelta en ambos modos, 1 MiB, cada byte del archivo alterado, cada bit de la cabecera y de la llave envuelta, truncamiento en cada longitud, datos sobrantes, empalme de dos archivos, límites de recursos, compromiso de llave, ML-KEM alterado, punto X25519 de orden bajo y que ambas mitades del modo híbrido sean necesarias.
+- 63 pruebas pasan. Cubren ida y vuelta en ambos modos, 1 MiB, cada byte del archivo alterado, cada bit de la cabecera y de la llave envuelta, truncamiento en cada longitud, datos sobrantes, empalme de dos archivos, límites de recursos, compromiso de llave, ML-KEM alterado, punto X25519 de orden bajo y que ambas mitades del modo híbrido sean necesarias.
 - Prueba de mutación (19 cambios deliberados al código): 15 detectados. Los 4 restantes son capas redundantes: otra capa rechaza el mismo caso (por ejemplo, la comprobación explícita de longitud y el rechazo del cifrado autenticado). Clasificación hecha por mí, no auditada por un tercero.
 - Una debilidad de pruebas se encontró y corrigió en esta ronda: la prueba de banderas pasaba por accidente. Ahora hay una que demuestra que apagar la bandera de compresión no devuelve datos equivocados.
+
+- **Auditoría independiente AUDIT_004** (`audits/AUDIT_004_VAULT.md`, un revisor, sin hallazgos críticos ni altos). Hallazgos medio/bajos corregidos con prueba de regresión: coste de Argon2 antes de validar la estructura (F1; ahora la estructura se valida primero y el tope baja a 512 MiB), longitud de frase contada tras normalizar (F2), sustitutos Unicode sueltos (F3), error distinto al importar un archivo que no es de llaves (F4), llave pública de orden bajo (F5), docstring (F6). Sin corregir: el resultado de mutación 15/19 no tiene script reproducible en el repo (F7); NFKC hace equivalentes frases de ancho completo y ASCII (F12, decisión de diseño). Es una revisión de prototipo, no sustituye la revisión criptográfica externa.
 
 ## 7. Antes de usarlo con secretos reales (pendiente)
 

@@ -339,3 +339,36 @@ def test_mode_mismatch_gives_a_clear_error(keys):
         dec(encrypt_for_recipient(b"x", keys.public()))
     with pytest.raises(FormatError, match="different mode"):
         decrypt_for_recipient(enc(), keys)
+
+
+# ------------------------------------------------------------------ AUDIT_004 regressions
+def test_malformed_file_with_huge_kdf_params_is_rejected_before_argon2():  # F1
+    hdr = struct.pack(">4sBBB", b"INV1", 1, 1, 0) + struct.pack(">16sIIB32s", b"s" * 16, V.MAX_KDF_KIB, 10, 16, b"c" * 32)
+    t = time.monotonic()
+    with pytest.raises(FormatError):
+        decrypt_with_passphrase(hdr + b"x" * 8, PW)
+    assert time.monotonic() - t < 0.2
+
+
+def test_passphrase_length_counted_after_normalization():  # F2
+    with pytest.raises(ValueError):
+        encrypt_with_passphrase(b"x", "é" * 6, kdf=FAST)  # 12 code points, 6 after NFKC
+
+
+def test_lone_surrogate_passphrase_is_a_clean_error():  # F3
+    with pytest.raises(ValueError):
+        encrypt_with_passphrase(b"x", "abcdefghijkl\ud800", kdf=FAST)
+
+
+def test_low_order_recipient_key_is_a_vault_error(keys):  # F5
+    bad = RecipientPublic(b"\x00" * 32, keys.public().mlkem768)
+    with pytest.raises(V.VaultError):
+        encrypt_for_recipient(b"x", bad)
+
+
+def test_non_key_vault_imported_as_keys_gives_same_error_as_wrong_passphrase():  # F4
+    blob = encrypt_with_passphrase(b"not a key", PW, kdf=FAST)
+    with pytest.raises(DecryptError):
+        RecipientKeys.import_private(blob, PW, max_kdf_kib=LOW_KDF_CAP)
+    with pytest.raises(DecryptError):
+        RecipientKeys.import_private(blob, PW2, max_kdf_kib=LOW_KDF_CAP)

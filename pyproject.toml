@@ -8,5 +8,5 @@ dependencies = ["zstandard==0.25.0", "brotli==1.2.1", "pyarrow==26.0.0", "crypto
 dev = ["pytest==9.1.1"]
 
 [tool.pytest.ini_options]
-pythonpath = ["packages/compression-core", "packages/vault"]
+pythonpath = ["packages/compression-core", "packages/vault", "packages/thunder"]
 testpaths = ["tests"]

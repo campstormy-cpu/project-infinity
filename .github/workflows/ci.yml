@@ -18,3 +18,5 @@ jobs:
       - run: pip install -r requirements-dev.txt
       - name: Run release gates
         run: python3 infrastructure/run_gates.py --ci
+      - name: Thunder guard dog
+        run: PYTHONPATH=packages/thunder python3 -m thunder scan --fail-on medium

@@ -120,3 +120,15 @@ def test_incompressible_data_does_not_shrink_FP01(codec):
 def test_redundant_data_does_shrink(codec):
     data = SAMPLES["zeros"]
     assert len(compress_bytes(codec, data)) < len(data) // 10
+
+
+def test_recovery_result_as_dict_reports_hashes_and_flags(tmp_path):
+    a, b = tmp_path / "a.bin", tmp_path / "b.bin"
+    a.write_bytes(b"same bytes")
+    b.write_bytes(b"same bytes")
+    d = check_recovery(a, b).as_dict()
+    assert d["ok"] is True and d["hash_match"] is True and d["byte_identical"] is True
+    assert d["sha256_original"] == hashlib.sha256(b"same bytes").hexdigest() == d["sha256_reconstructed"]
+    b.write_bytes(b"other bytes")
+    bad = check_recovery(a, b).as_dict()
+    assert bad["ok"] is False and bad["hash_match"] is False and bad["byte_identical"] is False

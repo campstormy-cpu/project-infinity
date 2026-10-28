@@ -1,0 +1,85 @@
+{
+  "comment": "Thunder config for Project Infinity. Baseline entries are accepted findings: reason required, editing them needs owner approval.",
+  "source_roots": [
+    "packages/compression-core",
+    "packages/vault",
+    "packages/thunder",
+    "."
+  ],
+  "critical": [
+    {
+      "name": "vault",
+      "paths": [
+        "packages/vault"
+      ],
+      "forbid_imports": [
+        "socket",
+        "subprocess",
+        "pickle",
+        "random",
+        "requests",
+        "urllib",
+        "http",
+        "ftplib",
+        "smtplib",
+        "ctypes"
+      ],
+      "require_tests": true
+    },
+    {
+      "name": "compression-core",
+      "paths": [
+        "packages/compression-core"
+      ],
+      "forbid_imports": [
+        "socket",
+        "pickle",
+        "requests",
+        "urllib",
+        "http",
+        "ftplib",
+        "smtplib"
+      ],
+      "require_tests": true
+    }
+  ],
+  "layers": [
+    {
+      "name": "compression-core is independent of the vault",
+      "from": [
+        "packages/compression-core"
+      ],
+      "must_not_reach": [
+        "packages/vault"
+      ]
+    },
+    {
+      "name": "libraries never import apps or tests",
+      "from": [
+        "packages"
+      ],
+      "must_not_reach": [
+        "apps",
+        "tests",
+        "benchmarks",
+        "infrastructure"
+      ]
+    }
+  ],
+  "import_name_map": {
+    "pytest": "pytest"
+  },
+  "baseline": {
+    "924ed248ef13855a": "__import__('os').cpu_count() with a constant module name; no external input (reviewed 2026-10-28)",
+    "30a9ed9a1c25a7ed": "dependency probe over a fixed list of module names in the gate runner; no external input (reviewed 2026-10-28)",
+    "ac6270d2e9a5bd98": "test code, constant module name",
+    "d5542ee97a14ee81": "actions pinned by tag, not SHA. Could not fetch SHAs (no GitHub API access from the sandbox). Owner to pin before real use."
+  },
+  "dangling_ignore": [
+    "AUDIT_001..003",
+    "scratch/",
+    "state/owner_approval.json",
+    "audits/fake.md",
+    "audits/link.md"
+  ]
+}

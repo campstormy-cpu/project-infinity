@@ -1,24 +1,24 @@
 {
-  "timestamp_utc": "2026-10-22T19:50:30.522905+00:00",
+  "timestamp_utc": "2026-10-28T05:41:07.604424+00:00",
   "partial_run": false,
   "gates": [
     {
       "id": "GATE_01",
       "name": "BUILD",
       "status": "PASS",
-      "evidence": "17 python files compiled; missing deps: none; errors: none"
+      "evidence": "20 python files compiled; missing deps: none; errors: none"
     },
     {
       "id": "GATE_02",
       "name": "UNIT_TESTS",
       "status": "PASS",
-      "evidence": "pytest exit 0: 214 passed in 158.49s (0:02:38)"
+      "evidence": "pytest exit 0: 268 passed in 114.45s (0:01:54)"
     },
     {
       "id": "GATE_03",
       "name": "INTEGRATION_TESTS",
       "status": "PASS",
-      "evidence": "pytest exit 0: 64 passed in 116.66s (0:01:56)"
+      "evidence": "pytest exit 0: 64 passed in 84.30s (0:01:24)"
     },
     {
       "id": "GATE_04",

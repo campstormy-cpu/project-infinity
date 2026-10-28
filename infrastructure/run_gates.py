@@ -71,7 +71,7 @@ def gate_build():
         except SyntaxError as e:
             errs.append(f"{p.relative_to(ROOT)}: {e}")
     missing = []
-    for mod in ("zstandard", "brotli", "lzma", "zlib", "bz2", "pyarrow", "pytest"):
+    for mod in ("zstandard", "brotli", "lzma", "zlib", "bz2", "pyarrow", "pytest", "cryptography"):
         try:
             __import__(mod)
         except ImportError:

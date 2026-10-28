@@ -27,6 +27,13 @@
       "topic": "Phase 2 target data",
       "decision": "Corpus of the owner's own non-sensitive files plus a public corpus of the same type for fair comparison. Files not yet provided.",
       "owner_words": "tiene que ser archivos mios (confirmed in follow-up: mis archivos y un corpus publico)"
+    },
+    {
+      "id": "D4",
+      "date": "2026-10-27",
+      "topic": "Project direction",
+      "decision": "Route C: build an encrypted vault (Phase 0) first as a small product; compression becomes a module afterwards.",
+      "owner_words": "la C"
     }
   ]
 }

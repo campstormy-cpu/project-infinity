@@ -1,5 +1,5 @@
 {
-  "updated_note": "Hand-maintained until a task runner exists. Updated 2026-10-23.",
+  "updated_note": "Hand-maintained until a task runner exists. Updated 2026-10-27.",
   "tasks": [
     {
       "id": "T-01",
@@ -71,7 +71,13 @@
       "id": "T-12",
       "title": "Owner strategic review",
       "state": "APPROVAL_REQUIRED",
-      "note": "D3 decided (accept risk). D2 account confirmed, repo creation pending. D1: owner chose his own files plus a public corpus; files not yet provided."
+      "note": "D3 decidido. D1/D2: ver owner_decisions. 2026-10-27: owner eligi\u00f3 ruta C (b\u00f3veda cifrada primero, compresi\u00f3n como m\u00f3dulo despu\u00e9s)."
+    },
+    {
+      "id": "T-13",
+      "title": "B\u00f3veda cifrada INV1 (Fase 0, ruta C)",
+      "state": "TESTING",
+      "note": "Prototipo: 54 pruebas, 15/19 mutantes detectados (4 restantes redundantes). SIN revisi\u00f3n externa: no usar con secretos reales. Ver docs/security/THREAT_MODEL.md y docs/adr/ADR-001-vault.md"
     }
   ]
 }

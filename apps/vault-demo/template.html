@@ -1,0 +1,370 @@
+<title>Bóveda Infinity y Thunder</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: two working panels (vault left, Thunder right) that stack on phones. Palette: cool paper and navy ink,
+   storm amber for Thunder, five fixed hues to colour the INV1 header fields. Type: Barlow Condensed for titles,
+   IBM Plex Sans for text, IBM Plex Mono for bytes. */
+:root{
+  --bg:#ECEFF4; --surface:#FFFFFF; --ink:#0F1A2A; --muted:#53647B; --line:#D2D9E3; --well:#F3F5F9;
+  --accent:#9A6200; --accent-ink:#FFFFFF; --accent-soft:#FFF1D0;
+  --good:#17714A; --good-soft:#DDF3E8; --bad:#B3261E; --bad-soft:#FBE4E2; --info-soft:#E4ECFA;
+  --h-magic:#9A6200; --h-mode:#0C7C86; --h-salt:#7A44B8; --h-kdf:#2F5FC4; --h-commit:#17714A;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif; --body:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0B1220; --surface:#121C2E; --ink:#E7ECF4; --muted:#93A3BA; --line:#25344A; --well:#0E1727;
+  --accent:#F2B84B; --accent-ink:#1A1300; --accent-soft:#2B2410;
+  --good:#5CC98F; --good-soft:#12301F; --bad:#FF8F86; --bad-soft:#3A1816; --info-soft:#15233D;
+  --h-magic:#F2B84B; --h-mode:#4CC9D3; --h-salt:#C39BFF; --h-kdf:#7FA8FF; --h-commit:#5CC98F; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0B1220; --surface:#121C2E; --ink:#E7ECF4; --muted:#93A3BA; --line:#25344A; --well:#0E1727;
+  --accent:#F2B84B; --accent-ink:#1A1300; --accent-soft:#2B2410;
+  --good:#5CC98F; --good-soft:#12301F; --bad:#FF8F86; --bad-soft:#3A1816; --info-soft:#15233D;
+  --h-magic:#F2B84B; --h-mode:#4CC9D3; --h-salt:#C39BFF; --h-kdf:#7FA8FF; --h-commit:#5CC98F; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1200px;margin:0 auto;display:grid;gap:16px}
+header.top{display:flex;flex-wrap:wrap;gap:8px 24px;align-items:end;justify-content:space-between}
+h1{font:700 40px/1 var(--display);letter-spacing:.01em;margin:0}
+h1 span{color:var(--accent)}
+.sub{color:var(--muted);margin:6px 0 0;max-width:62ch}
+.status{font:500 12px var(--mono);color:var(--muted);display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);border-radius:999px;padding:3px 10px;background:var(--surface)}
+.chip.ok{color:var(--good);border-color:var(--good)} .chip.err{color:var(--bad);border-color:var(--bad)}
+.notice{background:var(--accent-soft);border:1px solid var(--accent);border-radius:8px;padding:10px 14px;font-size:14px}
+.notice b{font-weight:600}
+.cols{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,1fr);gap:16px;align-items:start}
+@media(max-width:900px){.cols{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;min-width:0}
+.panel>h2{font:700 24px/1 var(--display);letter-spacing:.02em;margin:0;padding:14px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.panel .body{padding:16px;display:grid;gap:14px}
+.panel .body>*{min-width:0}
+.finding>*,.bubble>*{min-width:0}
+.tabs{display:flex;gap:4px;padding:8px 12px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.tab{font:600 14px var(--body);background:none;border:0;border-bottom:3px solid transparent;color:var(--muted);padding:8px 10px;cursor:pointer}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+label{font:600 12px var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:5px}
+textarea,input[type=password],input[type=text],select{width:100%;font:14px var(--mono);background:var(--well);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:9px 10px}
+textarea{min-height:92px;resize:vertical}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row>*{min-width:0}
+button.btn{font:600 14px var(--body);border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:8px 14px;cursor:pointer}
+button.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+button.btn:disabled{opacity:.5;cursor:not-allowed}
+button.btn.small{padding:4px 10px;font-size:12px}
+.meter{display:flex;gap:4px;align-items:center;font-size:12px;color:var(--muted)}
+.meter i{flex:0 0 36px;height:5px;border-radius:3px;background:var(--line)}
+.meter i.on1{background:var(--bad)} .meter i.on2{background:#C87B00} .meter i.on3{background:var(--good)} .meter i.on4{background:var(--good)}
+.out{font:13px/1.45 var(--mono);background:var(--well);border:1px solid var(--line);border-radius:6px;padding:10px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:240px;overflow:auto}
+.msg-ok{color:var(--good)} .msg-err{color:var(--bad)}
+.hex{font:13px/1.7 var(--mono);background:var(--well);border:1px solid var(--line);border-radius:6px;padding:10px;overflow-x:auto;white-space:pre}
+.hex .a{color:var(--h-magic)} .hex .b{color:var(--h-mode)} .hex .c{color:var(--h-salt)} .hex .d{color:var(--h-kdf)} .hex .e{color:var(--h-commit)} .hex .z{color:var(--muted)}
+.legend{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.legend b{font-family:var(--mono);font-weight:500}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:2px 14px;font-size:13px}
+.kv dt{color:var(--muted)} .kv dd{margin:0;font-family:var(--mono)}
+.tests{display:grid;gap:10px}
+.test{border:1px solid var(--line);border-radius:8px;padding:12px;display:grid;gap:8px}
+.test h3{margin:0;font:600 15px var(--body)} .test p{margin:0;color:var(--muted);font-size:13px}
+.result{font-size:13px;border-radius:6px;padding:8px 10px;display:none}
+.result.show{display:block} .result.bad{background:var(--bad-soft);color:var(--bad)} .result.good{background:var(--good-soft);color:var(--good)}
+/* Thunder */
+.bolt{width:26px;height:26px;color:var(--accent);flex:none}
+.feed{display:grid;gap:12px;max-height:540px;overflow:auto;padding-right:2px}
+@media(max-width:900px){.feed{max-height:none}}
+.bubble{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--well);display:grid;gap:8px;min-width:0}
+.bubble.user{background:var(--surface);border-style:dashed}
+.who{font:700 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.bubble.thunder .who{color:var(--accent)}
+.finding{border-left:3px solid var(--line);padding-left:10px;display:grid;gap:6px;min-width:0}
+.finding.decoded,.finding.cipher{border-color:var(--accent)} .finding.alert{border-color:var(--bad)} .finding.inv1{border-color:var(--good)} .finding.plain{border-color:var(--good)}
+.finding h4{margin:0;font:600 14px var(--body)} .finding p{margin:0;font-size:13px;color:var(--muted)}
+.finding.alert h4{color:var(--bad)}
+.examples{display:flex;gap:6px;flex-wrap:wrap}
+details{font-size:13px;color:var(--muted)} details summary{cursor:pointer;color:var(--ink);font-weight:600}
+details ul{margin:8px 0 0;padding-left:18px;display:grid;gap:4px}
+.foot{color:var(--muted);font-size:12px}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Bóveda <span>Infinity</span> + Thunder</h1>
+      <p class="sub">Cifra y descifra con el mismo formato INV1 que usa el código en Python. Thunder, el perro guardián, lee códigos y cifrados clásicos y te dice con franqueza lo que no puede abrir.</p>
+    </div>
+    <div class="status" aria-live="polite"><span class="chip" id="st-argon">Argon2id: cargando…</span><span class="chip">todo corre en tu navegador</span></div>
+  </header>
+
+  <div class="notice"><b>Demo educativa, sin revisión externa.</b> No cifres aquí secretos reales. Esta demo cubre el modo frase (Argon2id + AES-256-GCM). El modo híbrido poscuántico y la compresión viven en el código Python. Nada de lo que escribes sale de esta página.</div>
+
+  <div class="cols">
+    <section class="panel" aria-label="Bóveda">
+      <h2>Bóveda INV1</h2>
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" id="tab-enc" aria-selected="true" aria-controls="p-enc">Cifrar</button>
+        <button class="tab" role="tab" id="tab-dec" aria-selected="false" aria-controls="p-dec">Descifrar</button>
+        <button class="tab" role="tab" id="tab-test" aria-selected="false" aria-controls="p-test">Ponerla a prueba</button>
+      </div>
+
+      <div class="body" id="p-enc" role="tabpanel">
+        <div><label for="in-text">Mensaje</label><textarea id="in-text" spellcheck="false">Reunión con el proveedor el jueves a las 10:00. Llevar el contrato firmado y la copia del acta.</textarea></div>
+        <div>
+          <label for="in-pass">Frase de paso (mínimo 12 caracteres)</label>
+          <div class="row"><input id="in-pass" type="password" autocomplete="off" placeholder="cuatro o más palabras al azar" style="flex:1 1 220px"><button class="btn small" id="show-pass" type="button">Mostrar</button></div>
+          <div class="meter" id="meter" aria-live="polite" style="margin-top:6px"><i></i><i></i><i></i><i></i><span id="meter-txt">Escribe una frase</span></div>
+        </div>
+        <div>
+          <label for="in-cost">Costo de derivación de llave</label>
+          <select id="in-cost">
+            <option value="16384">Rápido: 16 MiB, 2 pasadas (solo para probar)</option>
+            <option value="65536" selected>Equilibrado: 64 MiB, 3 pasadas</option>
+            <option value="262144">Fuerte: 256 MiB, 3 pasadas (valor por defecto de INV1)</option>
+          </select>
+        </div>
+        <div class="row"><button class="btn primary" id="btn-enc" type="button" disabled>Cifrar</button><span id="enc-status" class="foot" aria-live="polite"></span></div>
+        <div id="enc-out" hidden>
+          <label>Archivo INV1 en base64 <button class="btn small" id="copy-enc" type="button">Copiar</button> <button class="btn small" id="to-dec" type="button">Mandar a «Descifrar»</button></label>
+          <div class="out" id="enc-b64"></div>
+        </div>
+      </div>
+
+      <div class="body" id="p-dec" role="tabpanel" hidden>
+        <div><label for="dec-in">Archivo INV1 en base64</label><textarea id="dec-in" spellcheck="false" placeholder="Pega aquí el texto base64 de un archivo INV1, también uno hecho con Python"></textarea></div>
+        <div><label for="dec-pass">Frase de paso</label><input id="dec-pass" type="password" autocomplete="off"></div>
+        <div class="row"><button class="btn primary" id="btn-dec" type="button" disabled>Descifrar</button><span id="dec-status" class="foot" aria-live="polite"></span></div>
+        <div class="out" id="dec-out" hidden></div>
+      </div>
+
+      <div class="body" id="p-test" role="tabpanel" hidden>
+        <p class="foot" style="margin:0">Estas pruebas actúan sobre el último archivo que cifraste. Son las mismas propiedades que revisaron las auditorías.</p>
+        <div id="no-blob" class="foot">Primero cifra un mensaje en la pestaña «Cifrar».</div>
+        <div class="tests" id="tests" hidden>
+          <div class="test"><h3>Cambiar un bit</h3><p>Un atacante altera un solo bit del archivo en cualquier posición. El archivo debe rechazarse.</p><div class="row"><button class="btn small" data-t="flip" type="button">Alterar un bit al azar</button></div><div class="result" id="r-flip"></div></div>
+          <div class="test"><h3>Frase equivocada</h3><p>El mensaje de error no debe revelar si la frase estuvo cerca ni si el archivo está dañado.</p><div class="row"><button class="btn small" data-t="wrong" type="button">Probar otra frase</button></div><div class="result" id="r-wrong"></div></div>
+          <div class="test"><h3>Parámetros hostiles</h3><p>Un archivo trucado pide 600 MiB de memoria al lector. Debe rechazarse antes de gastar memoria.</p><div class="row"><button class="btn small" data-t="hostile" type="button">Pedir 600 MiB</button></div><div class="result" id="r-hostile"></div></div>
+          <div class="test"><h3>Archivo recortado</h3><p>Se corta el final del archivo. Debe rechazarse por estructura, sin calcular nada.</p><div class="row"><button class="btn small" data-t="trunc" type="button">Cortar 1 byte</button></div><div class="result" id="r-trunc"></div></div>
+        </div>
+      </div>
+
+      <div class="body" style="border-top:1px solid var(--line)">
+        <div>
+          <label>Lo que ve cualquiera que robe el archivo (cabecera, primeros 64 bytes)</label>
+          <div class="hex" id="hex">Cifra algo para ver la cabecera.</div>
+          <div class="legend" style="margin-top:8px"><span><b style="color:var(--h-magic)">INV1</b> marca y versión</span><span><b style="color:var(--h-mode)">modo y banderas</b></span><span><b style="color:var(--h-salt)">sal</b> aleatoria</span><span><b style="color:var(--h-kdf)">costo Argon2</b></span><span><b style="color:var(--h-commit)">compromiso de llave</b></span></div>
+          <dl class="kv" id="hdr-kv" style="margin:10px 0 0"></dl>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="Thunder">
+      <h2><svg class="bolt" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.5 2 4 13.5h6.2L9 22l10-12.3h-6.4z"/></svg>Thunder, perro guardián</h2>
+      <div class="body">
+        <div class="feed" id="feed" aria-live="polite"></div>
+        <div>
+          <label for="th-in">Pega algo para que Thunder lo analice</label>
+          <textarea id="th-in" spellcheck="false" placeholder="Un texto cifrado, un código, un token JWT, base64, hex o un archivo INV1"></textarea>
+          <div class="row" style="margin-top:8px"><button class="btn primary" id="th-go" type="button">Analizar</button><button class="btn small" id="th-clear" type="button">Limpiar charla</button></div>
+        </div>
+        <div><label>Probar con ejemplos</label><div class="examples" id="examples"></div></div>
+        <details>
+          <summary>Qué sabe hacer Thunder y qué no</summary>
+          <ul>
+            <li>Quita capas de codificación: base64, base32, hexadecimal, binario, decimal, morse, URL y A1Z26.</li>
+            <li>Rompe cifrados clásicos: César, Atbash, afín, Vigenère (encuentra la clave), valla, transposición por columnas, sustitución simple, XOR de un byte y de clave repetida. En español e inglés.</li>
+            <li>Reconoce sin romper: archivos INV1, cabeceras de OpenSSL, PGP, JWT, hashes por su longitud, llaves privadas.</li>
+            <li>No puede abrir AES, ChaCha20, RSA ni archivos INV1 sin la llave o la frase, y nadie puede en la práctica. Tampoco revierte hashes ni adivina frases.</li>
+            <li>No conoce Playfair, Hill ni Enigma. Los textos muy cortos dan resultados poco fiables, y lo avisa.</li>
+            <li>Thunder es código fijo, no un modelo de lenguaje. Tu frase nunca pasa por él ni sale de la página.</li>
+          </ul>
+        </details>
+      </div>
+    </section>
+  </div>
+  <p class="foot">Formato y pruebas: <span style="font-family:var(--mono)">packages/vault</span> y <span style="font-family:var(--mono)">apps/vault-demo</span> del repositorio de Project Infinity. La demo se probó contra el código Python en ambos sentidos.</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/hash-wasm@4.11.0/dist/argon2.umd.min.js"></script>
+<script>/*__INV1__*/</script>
+<script>/*__THUNDER__*/</script>
+<script>
+(function(){
+"use strict";
+const $ = (id) => document.getElementById(id);
+const te = new TextEncoder(), td = new TextDecoder();
+const b64e = (u8) => { let s = ""; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); };
+const b64d = (s) => { const bin = atob(s.replace(/\s+/g, "")); const o = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) o[i] = bin.charCodeAt(i); return o; };
+let argonOK = false, lastBlob = null, lastPass = null;
+const argon = (o) => window.hashwasm.argon2id(o);
+
+/* ---------- Argon2id availability */
+(async function(){
+  const el = $("st-argon");
+  try {
+    if (!window.hashwasm) throw new Error("no cargó la biblioteca");
+    await argon({ password: "x", salt: new Uint8Array(16), parallelism: 1, iterations: 1, memorySize: 8, hashLength: 32, outputType: "binary" });
+    argonOK = true; el.textContent = "Argon2id: listo"; el.classList.add("ok");
+  } catch (e) {
+    el.textContent = "Argon2id: no disponible"; el.classList.add("err");
+    thunderSay([{ kind: "alert", title: "La bóveda no puede arrancar en este visor", detail: "Argon2id necesita WebAssembly y este visor lo bloquea o no cargó la biblioteca (" + (e && e.message || e) + "). Yo sigo funcionando: puedes analizar textos. Para usar la bóveda abre la página en un navegador normal." }]);
+  }
+  refresh();
+})();
+
+/* ---------- tabs */
+const tabs = ["enc", "dec", "test"];
+function showTab(n){ tabs.forEach((t) => { $("tab-" + t).setAttribute("aria-selected", String(t === n)); $("p-" + t).hidden = t !== n; }); }
+tabs.forEach((t) => $("tab-" + t).addEventListener("click", () => showTab(t)));
+
+/* ---------- helpers */
+async function copy(text, btn){
+  const old = btn.textContent;
+  try { await navigator.clipboard.writeText(text); btn.textContent = "Copiado"; }
+  catch (e) { const r = document.createRange(); const n = btn.closest("div").querySelector(".out, pre"); if (n) { r.selectNodeContents(n); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } btn.textContent = "Selecciona y copia"; }
+  setTimeout(() => (btn.textContent = old), 1600);
+}
+function human(e){ return (e && e.message) ? e.message : String(e); }
+function refresh(){
+  const okp = $("in-pass").value.length > 0;
+  $("btn-enc").disabled = !argonOK || !okp || !$("in-text").value;
+  $("btn-dec").disabled = !argonOK || !$("dec-in").value.trim() || !$("dec-pass").value;
+}
+function meter(){
+  const c = Thunder.passphraseCheck($("in-pass").value), bars = $("meter").querySelectorAll("i");
+  bars.forEach((b, i) => (b.className = i < c.level ? "on" + c.level : ""));
+  $("meter-txt").textContent = c.level ? `${c.label}, ~${c.bits} bits estimados. ${c.advice}` : c.advice;
+}
+
+/* ---------- header view */
+function hexView(blob){
+  const n = Math.min(64, blob.length); let out = "";
+  const cls = (i) => i < 4 ? "a" : i < 7 ? "b" : i < 23 ? "c" : i < 32 ? "d" : "e";
+  for (let r = 0; r < n; r += 16) {
+    out += (r.toString(16).padStart(4, "0")) + "  ";
+    for (let i = r; i < Math.min(r + 16, n); i++) out += `<span class="${cls(i)}">${blob[i].toString(16).padStart(2, "0")}</span> `;
+    out += "\n";
+  }
+  return out + `<span class="z">… y ${blob.length - n} bytes más, todos cifrados o autenticados</span>`;
+}
+function showHeader(blob){
+  $("hex").innerHTML = hexView(blob);
+  const h = INV1.inspect(blob);
+  $("hdr-kv").innerHTML = [["modo", h.modeName], ["versión", h.version], ["comprimido", h.compressed ? "sí" : "no"], ["memoria Argon2", h.m_kib != null ? (h.m_kib / 1024) + " MiB" : "-"], ["pasadas / carriles", h.t != null ? h.t + " / " + h.lanes : "-"], ["tamaño total", h.size + " bytes"], ["nombre del archivo", "no se guarda"]].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
+}
+
+/* ---------- encrypt */
+$("show-pass").addEventListener("click", (e) => { const i = $("in-pass"); i.type = i.type === "password" ? "text" : "password"; e.target.textContent = i.type === "password" ? "Mostrar" : "Ocultar"; });
+["in-text", "in-pass", "dec-in", "dec-pass"].forEach((id) => $(id).addEventListener("input", () => { refresh(); if (id === "in-pass") meter(); }));
+$("in-cost").addEventListener("change", () => {});
+$("btn-enc").addEventListener("click", async () => {
+  const st = $("enc-status"), btn = $("btn-enc"); btn.disabled = true; st.textContent = "Derivando la llave…"; st.className = "foot";
+  const mem = +$("in-cost").value, pass = $("in-pass").value, check = Thunder.passphraseCheck(pass);
+  try {
+    const t0 = performance.now();
+    const blob = await INV1.encrypt(te.encode($("in-text").value), pass, argon, { m_kib: mem, t: mem === 16384 ? 2 : 3, lanes: mem === 16384 ? 2 : 4 });
+    const secs = ((performance.now() - t0) / 1000).toFixed(2);
+    lastBlob = blob; lastPass = pass;
+    $("enc-b64").textContent = b64e(blob); $("enc-out").hidden = false; showHeader(blob);
+    $("tests").hidden = false; $("no-blob").hidden = true;
+    st.textContent = `Listo en ${secs} s, ${blob.length} bytes.`; st.className = "foot msg-ok";
+    thunderSay([{ kind: check.level >= 3 ? "plain" : "alert", title: `Revisé tu cifrado: frase ${check.label} (~${check.bits} bits estimados)`, detail: `${check.advice} El archivo costó ${secs} s de derivación: eso mismo cuesta cada intento a quien quiera adivinar tu frase, con ${mem / 1024} MiB de memoria cada vez. Con una frase fuerte no hay ataque práctico; con una débil, el algoritmo no te salva.` }]);
+  } catch (e) { st.textContent = human(e); st.className = "foot msg-err"; }
+  refresh();
+});
+$("copy-enc").addEventListener("click", (e) => copy($("enc-b64").textContent, e.target));
+$("to-dec").addEventListener("click", () => { $("dec-in").value = $("enc-b64").textContent; showTab("dec"); refresh(); });
+
+/* ---------- decrypt */
+$("btn-dec").addEventListener("click", async () => {
+  const st = $("dec-status"), out = $("dec-out"), btn = $("btn-dec"); btn.disabled = true; out.hidden = true; st.className = "foot"; st.textContent = "Derivando la llave…";
+  try {
+    let blob; try { blob = b64d($("dec-in").value); } catch (e) { throw new Error("El texto no es base64 válido."); }
+    const t0 = performance.now();
+    const pt = await INV1.decrypt(blob, $("dec-pass").value, argon);
+    st.textContent = `Descifrado en ${((performance.now() - t0) / 1000).toFixed(2)} s.`; st.className = "foot msg-ok";
+    let text; try { text = new TextDecoder("utf-8", { fatal: true }).decode(pt); } catch (e) { text = `(${pt.length} bytes binarios)`; }
+    out.textContent = text; out.hidden = false; showHeader(blob);
+  } catch (e) { st.textContent = human(e); st.className = "foot msg-err"; }
+  refresh();
+});
+
+/* ---------- stress tests */
+function res(id, ok, text){ const r = $("r-" + id); r.className = "result show " + (ok ? "good" : "bad"); r.textContent = text; }
+document.querySelectorAll("[data-t]").forEach((b) => b.addEventListener("click", async () => {
+  if (!lastBlob) return; const id = b.dataset.t, blob = lastBlob.slice(); b.disabled = true;
+  try {
+    if (id === "flip") {
+      const i = Math.floor(Math.random() * blob.length), bit = Math.floor(Math.random() * 8); blob[i] ^= 1 << bit;
+      try { await INV1.decrypt(blob, lastPass, argon); res(id, false, "El archivo alterado se aceptó. Esto sería un fallo grave."); }
+      catch (e) { res(id, true, `Alteré el bit ${bit} del byte ${i} (${i < 64 ? "cabecera" : i < 64 + 12 + 80 + 12 + 8 ? "llave envuelta" : "mensaje cifrado"}). Rechazado: «${human(e)}».`); }
+    } else if (id === "wrong") {
+      try { await INV1.decrypt(blob, lastPass + " x", argon); res(id, false, "Se aceptó una frase equivocada."); }
+      catch (e) { res(id, true, `Rechazado con «${human(e)}». El mensaje es el mismo que para un archivo dañado.`); }
+    } else if (id === "hostile") {
+      new DataView(blob.buffer).setUint32(23, 600 * 1024); const t0 = performance.now();
+      try { await INV1.decrypt(blob, lastPass, argon); res(id, false, "Se aceptó."); }
+      catch (e) { res(id, true, `Rechazado en ${Math.round(performance.now() - t0)} ms sin tocar Argon2: «${human(e)}».`); }
+    } else if (id === "trunc") {
+      const t0 = performance.now(); try { await INV1.decrypt(blob.slice(0, -1), lastPass, argon); res(id, false, "Se aceptó."); }
+      catch (e) { res(id, true, `Rechazado en ${Math.round(performance.now() - t0)} ms sin tocar Argon2: «${human(e)}».`); }
+    }
+  } finally { b.disabled = false; }
+}));
+
+/* ---------- Thunder chat */
+const feed = $("feed");
+function el(tag, cls, text){ const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+function thunderSay(findings, note){
+  const b = el("div", "bubble thunder"); b.appendChild(el("div", "who", "Thunder"));
+  if (note) b.appendChild(el("p", "", note));
+  findings.forEach((f) => {
+    const d = el("div", "finding " + f.kind); d.appendChild(el("h4", "", f.title));
+    if (f.detail) d.appendChild(el("p", "", f.detail));
+    if (f.result) { const w = el("div"); const pre = el("div", "out", f.result); const cb = el("button", "btn small", "Copiar"); cb.type = "button"; cb.style.marginTop = "6px"; cb.addEventListener("click", () => copy(f.result, cb)); w.appendChild(pre); w.appendChild(cb); d.appendChild(w); }
+    if (f.kind === "inv1" && f.blob) { const ob = el("button", "btn small", "Abrir en la bóveda"); ob.type = "button"; ob.addEventListener("click", () => { $("dec-in").value = f.blob; showTab("dec"); refresh(); $("dec-pass").focus(); }); d.appendChild(ob); }
+    b.appendChild(d);
+  });
+  feed.appendChild(b); feed.scrollTop = feed.scrollHeight;
+}
+function userSay(text){ const b = el("div", "bubble user"); b.appendChild(el("div", "who", "Tú")); b.appendChild(el("div", "out", text.length > 400 ? text.slice(0, 400) + "…" : text)); feed.appendChild(b); }
+function analyze(text){
+  if (!text.trim()) return; userSay(text);
+  setTimeout(() => {
+    const t0 = performance.now(); let r;
+    try { r = Thunder.analyze(text); } catch (e) { thunderSay([{ kind: "alert", title: "Algo salió mal al analizar", detail: human(e) }]); return; }
+    const pl = Thunder.peel(text.trim());
+    r.findings.forEach((f) => { if (f.kind === "inv1" && pl.bytes) f.blob = b64e(pl.bytes); if (f.kind === "inv1") { try { const h = INV1.inspect(pl.bytes); f.detail += ` Cabecera: ${h.modeName}${h.m_kib ? ", " + h.m_kib / 1024 + " MiB, " + h.t + " pasadas" : ""}.`; } catch (e) {} } });
+    thunderSay(r.findings, `Análisis en ${Math.round(performance.now() - t0)} ms.`);
+  }, 30);
+}
+$("th-go").addEventListener("click", () => { const v = $("th-in").value; analyze(v); });
+$("th-clear").addEventListener("click", () => { feed.textContent = ""; greet(); });
+
+/* ---------- examples */
+const ES1 = "Nos vemos en la plaza al amanecer. Trae el mensaje, no hables con nadie y espera la señal de la campana antes de cruzar el puente.";
+const ES2 = "El informe confirma que el acceso al servidor se hizo con una contraseña débil, y que nadie revisó los registros durante tres semanas. Recomendamos cambiar todas las claves, activar la verificación en dos pasos y guardar las copias de seguridad en un lugar separado de la red de la oficina antes del viernes.";
+const ES3 = "Los mejores sistemas de seguridad no dependen de que el atacante ignore cómo funcionan, sino de que sin la clave secreta no pueda hacer nada útil con lo que ve. Por eso se publican los algoritmos, se revisan durante años y se protege solamente la llave, que debe ser larga, aleatoria y conocida por muy pocas personas.";
+const sh = (s, k) => Thunder.shiftText(s, k);
+const vig = (s, key) => { let j = 0; return s.replace(/[A-Za-z]/g, (c) => { const b = c <= "Z" ? 65 : 97; return String.fromCharCode(b + ((c.charCodeAt(0) - b + key.charCodeAt(j++ % key.length) - 65) % 26)); }); };
+const sub = (s, key) => s.replace(/[A-Za-z]/g, (c) => { const o = key[c.toUpperCase().charCodeAt(0) - 65]; return c <= "Z" ? o : o.toLowerCase(); });
+const rail = (s, r) => { const rows = Array.from({ length: r }, () => ""); let i = 0, d = 1; for (const ch of s.replace(/\s+/g, "")) { rows[i] += ch; if (i === 0) d = 1; else if (i === r - 1) d = -1; i += d; } return rows.join(""); };
+const EX = [
+  ["César", () => sh(ES1, 5)],
+  ["Vigenère", () => vig(ES2, "TRUENO")],
+  ["Sustitución", () => sub(ES3, "ZEBRASCDFGHIJKLMNOPQTUVWXY")],
+  ["Valla", () => rail(ES1, 4)],
+  ["Capas", () => btoa(Array.from(te.encode("mensaje dentro de capas de codificacion")).map((b) => b.toString(16).padStart(2, "0")).join(""))],
+  ["Morse", () => ".... --- .-.. .- / -- ..- -. -.. ---"],
+  ["AES-256-GCM real", async () => { const k = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, false, ["encrypt"]); const iv = crypto.getRandomValues(new Uint8Array(12)); const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, k, te.encode(ES3))); const o = new Uint8Array(12 + ct.length); o.set(iv); o.set(ct, 12); return b64e(o); }],
+  ["Hash MD5", () => "5d41402abc4b2a76b9719d911017c592"],
+  ["JWT sin firma", () => { const u = (o) => btoa(JSON.stringify(o)).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_"); return u({ alg: "none", typ: "JWT" }) + "." + u({ sub: "admin", role: "root" }) + "."; }],
+  ["Archivo INV1", () => lastBlob ? b64e(lastBlob) : null],
+];
+EX.forEach(([name, make]) => { const b = el("button", "btn small", name); b.type = "button"; b.addEventListener("click", async () => { const v = await make(); if (v == null) { thunderSay([{ kind: "none", title: "Aún no hay archivo INV1", detail: "Cifra un mensaje en la pestaña «Cifrar» y vuelve a pulsar este ejemplo." }]); return; } $("th-in").value = v; analyze(v); }); $("examples").appendChild(b); });
+
+function greet(){ thunderSay([{ kind: "plain", title: "Soy Thunder, el guardián de la bóveda", detail: "Pega un texto cifrado o un código y te digo qué es, y si puedo, lo abro. Si es cifrado moderno de verdad, te diré que no se puede abrir sin la llave. Mi trabajo es no engañarte en ninguna de las dos direcciones." }]); }
+greet(); meter(); refresh();
+})();
+</script>
